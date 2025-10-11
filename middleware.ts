@@ -51,4 +51,6 @@ export const config = {
 
     "/new-feature-route(.*)",
   ],
+  //Reduce for deploy size
+  runtime: "nodejs"
 };
