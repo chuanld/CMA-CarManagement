@@ -1,6 +1,7 @@
 import { getDashboardStats } from '@/actions/admin';
 import React from 'react'
 import { Dashboard } from './_components/dashboard';
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Admin Dashboard | CMA ADMIN',
