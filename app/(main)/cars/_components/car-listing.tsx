@@ -5,7 +5,7 @@ import { Car } from '@/types/car'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import CarListSkeleton from './car-list-skeleton'
-import { ApiResponse, CarListResponse } from '@/types/api'
+import { ApiResponse, CarListApiResponse } from '@/types/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ const CarListing = () => {
     const sortBy = searchParams.get('sortBy') || 'newest';
     const page = parseInt(searchParams.get('page') || '1');
 
-    const { loading: isFetchCar, fetchData: fnGetCars, data: resultCars, error: errorData } = useFetch<CarListResponse>(getCars)
+    const { loading: isFetchCar, fetchData: fnGetCars, data: resultCars, error: errorData } = useFetch<CarListApiResponse>(getCars)
 
     useEffect(() => {
         fnGetCars({ search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page, limit });

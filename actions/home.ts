@@ -1,9 +1,9 @@
 'use server';
-import { aj } from "@/lib/arcjet";
+// import { aj } from "@/lib/arcjet";
 import { serializeCarData } from "@/lib/helper";
 import { db } from "@/lib/prisma";
 import { Car } from "@/types/car";
-import { request } from "@arcjet/next";
+// import { request } from "@arcjet/next";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { toast } from "sonner";
 
@@ -32,26 +32,29 @@ export async function getFeaturedCars(limit: number = 3) {
 
 export async function processImageSearch(file: File) {
   try {
-    const req = await request();
 
-    const decision = await aj.protect(req, { requested: 1 });
+    //For arcjet rate limiting
+    // const req = await request();
 
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        const { remaining, reset } = decision.reason;
+    // const decision = await aj.protect(req, { requested: 1 });
 
-        console.error({
-          code: "RATE_LIMIT_EXCEEDED",
-          details: {
-            remaining,
-            resetInSeconds: reset,
-          },
-        });
+    // if (decision.isDenied()) {
+    //   if (decision.reason.isRateLimit()) {
+    //     const { remaining, reset } = decision.reason;
 
-        throw new Error("Too Many Requests");
-      }
-      throw new Error("Request blocked");
-    }
+    //     console.error({
+    //       code: "RATE_LIMIT_EXCEEDED",
+    //       details: {
+    //         remaining,
+    //         resetInSeconds: reset,
+    //       },
+    //     });
+
+    //     throw new Error("Too Many Requests");
+    //   }
+    //   throw new Error("Request blocked");
+    // }
+    
 
     if (!process.env.GEMINI_API_KEY) {
       throw new Error("Missing GEMINI_API_KEY");

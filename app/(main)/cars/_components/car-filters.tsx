@@ -176,7 +176,7 @@ const CarFilters = ({ filters }: { filters: any }) => {
                             <SheetHeader>
                                 <SheetTitle>Filter by</SheetTitle>
                             </SheetHeader>
-                            <div className="flex flex-col p-4">
+                            <div className="flex flex-col p-4"> 
                                 <CarFilterControls filters={filters} currentFilters={currentFilters} onFilterChange={handleFilterChange} onClearFilter={handleClearFilter} />
                             </div>
                             <SheetFooter className='sm:justify-between gap-2 flex-row pt-2 border-t space-x-4 mt-auto'>

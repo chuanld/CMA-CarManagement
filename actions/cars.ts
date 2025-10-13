@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { QueryData } from "@supabase/supabase-js";
 import { serializeCarData } from "@/lib/helper";
+import { ApiQueryPayload } from "@/types/payload";
 
 async function fileToBase64(file: File): Promise<string> {
   const bytes = await file.arrayBuffer();
@@ -309,7 +310,13 @@ export async function addCar({
   }
 }
 
-export async function getCars(search?: QueryData<string>) {
+export async function getCars({
+  search,
+  pagination,
+  sortBy = "createdAt",
+  sortOrder = "desc",
+  filters,
+}: ApiQueryPayload) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -328,7 +335,6 @@ export async function getCars(search?: QueryData<string>) {
       whereClause.OR = [
         { make: { contains: search, mode: "insensitive" } },
         { model: { contains: search, mode: "insensitive" } },
-        { year: { equals: parseInt(search) } },
         { color: { contains: search, mode: "insensitive" } },
         { bodyType: { contains: search, mode: "insensitive" } },
         { fuelType: { contains: search, mode: "insensitive" } },
@@ -336,14 +342,89 @@ export async function getCars(search?: QueryData<string>) {
         { description: { contains: search, mode: "insensitive" } },
       ];
     }
+    if (filters) {
+      if (filters.status) {
+        whereClause.status = filters.status;
+      }
+      if (filters.featured !== undefined) {
+        whereClause.featured = filters.featured;
+      }
+      if (filters.bodyType) {
+        whereClause.bodyType = {
+          contains: filters.bodyType,
+          mode: "insensitive",
+        };
+      }
+      if (filters.fuelType) {
+        whereClause.fuelType = {
+          contains: filters.fuelType,
+          mode: "insensitive",
+        };
+      }
+      if (filters.transmission) {
+        whereClause.transmission = {
+          contains: filters.transmission,
+          mode: "insensitive",
+        };
+      }
+      if (filters.color) {
+        whereClause.color = { contains: filters.color, mode: "insensitive" };
+      }
+      if (filters.year) {
+        whereClause.year = filters.year;
+      }
+      if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+        whereClause.price = {};
+        if (filters.minPrice !== undefined) {
+          whereClause.price.gte = filters.minPrice;
+        }
+        if (filters.maxPrice !== undefined) {
+          whereClause.price.lte = filters.maxPrice;
+        }
+      }
+      if (filters.make) {
+        whereClause.make = { contains: filters.make, mode: "insensitive" };
+      }
+      if (filters.model) {
+        whereClause.model = { contains: filters.model, mode: "insensitive" };
+      }
+    }
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 5;
+    const skip = (page - 1) * limit;
+
+    const allowedSortFields = ["price", "year", "createdAt"];
+    const orderBy: Array<{ [key: string]: "asc" | "desc" }> = [];
+
+    if (allowedSortFields.includes(sortBy)) {
+      orderBy.push({ [sortBy]: sortOrder === "asc" ? "asc" : "desc" });
+    } else {
+      orderBy.push({ createdAt: "desc" }); // fallback
+    }
+
+    // Fallback tie-break
+    if (sortBy !== "createdAt") {
+      orderBy.push({ createdAt: "desc" });
+    }
+
+    const totalCars = await db.car.count({ where: whereClause });
+    const totalPages = Math.ceil(totalCars / limit);
+    console.log(orderBy, "a");
+
     const cars = await db.car.findMany({
       where: whereClause,
-      orderBy: { createdAt: "desc" },
+      orderBy,
+      skip: skip,
+      take: limit,
     });
 
     const serializeCars = cars.map((car) => serializeCarData(car));
 
-    return { success: true, data: serializeCars };
+    return {
+      success: true,
+      data: serializeCars,
+      pagination: { total: totalCars, page, limit, totalPages },
+    };
   } catch (err) {
     return { success: false, error: (err as Error).message };
   }
@@ -407,7 +488,13 @@ export async function deleteCar(carId: string) {
   }
 }
 
-export async function updateCarStatus(id: string, {  status, featured }: { status: "available" | "sold" | "pending"; featured: boolean }) {
+export async function updateCarStatus(
+  id: string,
+  {
+    status,
+    featured,
+  }: { status: "AVAILABLE" | "UNAVAILABLE" | "SOLD" | "PENDING"; featured: boolean }
+) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -423,10 +510,10 @@ export async function updateCarStatus(id: string, {  status, featured }: { statu
 
     const updateData = {};
 
-    if(status !== undefined) {
+    if (status !== undefined) {
       (updateData as any).status = status;
     }
-    if(featured !== undefined) {
+    if (featured !== undefined) {
       (updateData as any).featured = featured;
     }
 
@@ -435,12 +522,9 @@ export async function updateCarStatus(id: string, {  status, featured }: { statu
       data: updateData,
     });
 
-
     revalidatePath("/admin/cars");
     return { success: true };
   } catch (err) {
     return { success: false, error: (err as Error).message };
   }
 }
-
-    

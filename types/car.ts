@@ -21,6 +21,18 @@ export  type  carDetailsFromAI = {
   };
 };
 
+export type GETCARS = {
+  success?: boolean;
+  data: Car[];
+  pagination?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  error?: string;
+}
+
 export type Car = {
     id: string;
     make: string;
@@ -46,6 +58,32 @@ export type Car = {
     savedBy?: UserSavedCar[];
     whishlisted?: boolean;
 };
+
+export type SerializeCars = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  price: string; // Decimal(10, 2) represented as string
+  mileage: number;
+  color: string;
+  fuelType: string;
+  transmission: string;
+  bodyType: string;
+  seats?: number;
+  description: string;
+  status: 'AVAILABLE' | 'UNAVAILABLE' | 'SOLD' | 'PENDING';
+  featured: boolean;
+  images: string[];
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  testDriverInfo: {
+    dealerShip: DealershipInfo;
+    userTestDrives?: TestDriveBooking[] | [];
+  };
+  savedBy?: UserSavedCar[];
+  whishlisted?: boolean;
+}
 
 export type CarImage = {
     id: string;

@@ -1,9 +1,11 @@
-"use client"
+'use client'
+import React, { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { bookTestDrive } from '@/actions/test-drive'
 import useFetch from '@/app/hooks/use-fetch'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -11,164 +13,154 @@ import { Textarea } from '@/components/ui/textarea'
 import { ApiResponse } from '@/types/api'
 import { Car } from '@/types/car'
 import { DealershipInfo } from '@/types/settings'
-import { TestDriveBooking } from '@/types/user'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Label } from '@radix-ui/react-label'
+import { Label } from '@/components/ui/label'
 import { format, parseISO } from 'date-fns'
-import { CalendarIcon, Car as CarIcon, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowLeft, CalendarIcon, Car as CarIcon, CheckCircle2, Clock, Globe, Loader2, Mail, MapPin, MessageSquare, Phone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-
-type Props = {
-  car: Car,
-  testDriverInfo?: {
-    dealerShip: DealershipInfo,
-    userTestDrives: TestDriveBooking[] | []
-  }
+import * as Tooltip from '@radix-ui/react-tooltip'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatCurrency } from '@/lib/helper'
+import { TestDriveBooking } from '@/types/user'
+import { Separator } from '@/components/ui/separator'
+interface TimeSlot {
+  id: string
+  label: string
+  startTime: string
+  endTime: string
 }
 
-type TimeSlot = {
-  id: string;
-  label: string;
-  startTime: string;
-  endTime: string;
+interface TestDriveFormProps {
+  car: Car
+  testDriverInfo?: {
+    dealerShip: DealershipInfo
+    userTestDrives: TestDriveBooking[]
+  }
 }
 
 const testDriveSchema = z.object({
-  date: z.coerce
+  date: z
     .date()
-    .refine((val) => !isNaN(val.getTime()), { message: "Please select a valid date" }),
-  timeSlot: z.string().trim().min(1, { message: "Please select a time slot" }),
-  notes: z.string().max(500, { message: "Maximum 500 characters" }).optional(),
+    .refine((val) => !isNaN(val.getTime()), { message: 'Please select a valid date' }),
+  timeSlot: z.string().trim().min(1, { message: 'Please select a time slot' }),
+  notes: z.string().max(500, { message: 'Maximum 500 characters' }).optional(),
 })
-const TestDriveForm = ({ car, testDriverInfo }: Props) => {
 
-  const router = useRouter();
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
+  const router = useRouter()
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([])
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
   const [bookingDetails, setBookingDetails] = useState<{
-    date: string;
-    timeSlot: string;
-    notes?: string;
-  } | null>(null);
+    date: string
+    timeSlot: string
+    notes?: string
+  } | null>(null)
 
-
-  const { control, register, handleSubmit, formState: { errors, isValid }, watch, setValue, reset } = useForm({
+  const { control, register, handleSubmit, formState: { errors, isValid }, watch, setValue, reset } = useForm<
+    z.infer<typeof testDriveSchema>
+  >({
     resolver: zodResolver(testDriveSchema),
     defaultValues: {
       date: undefined,
-      timeSlot: undefined,
-      notes: ''
-    }
+      timeSlot: '',
+      notes: '',
+    },
   })
 
-  const dealerShip: DealershipInfo | undefined = testDriverInfo?.dealerShip;
-  const existingBookings: TestDriveBooking[] = testDriverInfo?.userTestDrives || [];
-  const selectedDate: Date | unknown = watch('date');
+  const dealerShip: DealershipInfo | undefined = testDriverInfo?.dealerShip
+  const existingBookings: TestDriveBooking[] = testDriverInfo?.userTestDrives || []
+  const selectedDate: Date | undefined = watch('date')
 
-
-  const isPastDate = (d: Date) => {
+  const isDayDisabled = (date: Date) => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)  // reset giờ phút giây
-    d.setHours(0, 0, 0, 0)
-    return d < today
-  }
+    today.setHours(0, 0, 0, 0)
+    date.setHours(0, 0, 0, 0)
+    if (date < today) return true
 
-  const isDayDisabled = (date: any) => {
-    const today = new Date();
-    console.log(date, today);
-
-    const isPast = new Date(date).setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0)
-    if (isPast) return true
-
-    const dayOfWeek = format(date as Date, 'EEEE').toUpperCase();
-    const daySchedule = dealerShip?.workingHours?.find((schedule) => schedule.dayOfWeek === dayOfWeek);
-
-    return !daySchedule || !daySchedule.isOpen;
+    const dayOfWeek = format(date, 'EEEE').toUpperCase()
+    const daySchedule = dealerShip?.workingHours?.find((schedule) => schedule.dayOfWeek === dayOfWeek)
+    return !daySchedule || !daySchedule.isOpen
   }
 
   useEffect(() => {
-    if (!selectedDate || !dealerShip?.workingHours) return
-
-    const selectedDayOfWeek = format(selectedDate as Date, 'EEEE').toUpperCase();
-    const daySchedule = dealerShip.workingHours.find((schedule) => schedule.dayOfWeek === selectedDayOfWeek);
-
-    if (!daySchedule || !daySchedule.isOpen) {
-      setAvailableTimeSlots([]);
-      return;
+    if (!selectedDate || !dealerShip?.workingHours) {
+      setAvailableTimeSlots([])
+      setValue('timeSlot', '')
+      return
     }
 
-    const openHour = parseInt(daySchedule.openTime.split(':')[0]);
-    const closeHour = parseInt(daySchedule.closeTime.split(':')[0]);
+    const selectedDayOfWeek = format(selectedDate, 'EEEE').toUpperCase()
+    const daySchedule = dealerShip.workingHours.find((schedule) => schedule.dayOfWeek === selectedDayOfWeek)
 
-    const slots: TimeSlot[] = [];
+    if (!daySchedule || !daySchedule.isOpen) {
+      setAvailableTimeSlots([])
+      setValue('timeSlot', '')
+      return
+    }
+
+    const openHour = parseInt(daySchedule.openTime.split(':')[0])
+    const closeHour = parseInt(daySchedule.closeTime.split(':')[0])
+    const slots: TimeSlot[] = []
+
     for (let hour = openHour; hour < closeHour; hour++) {
-      const startTime = `${hour.toString().padStart(2, "0")}:00`;
-      const endTime = `${(hour + 1).toString().padStart(2, "0")}:00`;
+      const startTime = `${hour.toString().padStart(2, '0')}:00`
+      const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`
 
-      const isBooked = existingBookings.some((booking: any) => {
-        const bookingDate = booking.bookingDate;
+      const isBooked = existingBookings.some((booking) => {
+        const bookingDate = format(new Date(booking.bookingDate), 'yyyy-MM-dd')
         return (
-          bookingDate === format(selectedDate as Date, 'yyyy-MM-dd') &&
+          bookingDate === format(selectedDate, 'yyyy-MM-dd') &&
           (booking.startTime === startTime || booking.endTime === endTime)
         )
-      });
+      })
 
       if (!isBooked) {
         slots.push({
           id: `${startTime} - ${endTime}`,
           label: `${startTime} - ${endTime}`,
           startTime,
-          endTime
+          endTime,
         })
       }
     }
 
-    setAvailableTimeSlots(slots);
-    setValue('timeSlot', "") // reset selected time slot
-  }, [selectedDate])
+    setAvailableTimeSlots(slots)
+    setValue('timeSlot', '')
+  }, [selectedDate, dealerShip?.workingHours, existingBookings, setValue])
 
+  const { data: bookingResult, error: bookingError, loading: bookingInProcess, fetchData: fnBookTestDrive } =
+    useFetch<ApiResponse<TestDriveBooking>>(bookTestDrive)
 
-  //Book test drive
-  const {
-    data: bookingResult,
-    error: bookingError,
-    loading: bookingInProcess,
-    fetchData: fnBookTestDrive
-  } = useFetch<ApiResponse<TestDriveBooking>>(bookTestDrive)
   useEffect(() => {
-    if (bookingResult && bookingResult?.success) {
+    if (bookingResult?.success) {
       setBookingDetails({
-        date: format(bookingResult?.data?.bookingDate as Date, "EEEE, MMMM d, yyyy"),
-        timeSlot: `${format(
-          parseISO(`2022-01-01T${bookingResult?.data?.startTime}`), "h:mm a"
-        )} - ${format(parseISO(`2022-01-01T${bookingResult?.data?.endTime}`), "h:mm a"
+        date: format(new Date(bookingResult.data.bookingDate), 'EEEE, MMMM d, yyyy'),
+        timeSlot: `${format(parseISO(`2023-01-01T${bookingResult.data.startTime}`), 'h:mm a')} - ${format(
+          parseISO(`2023-01-01T${bookingResult.data.endTime}`),
+          'h:mm a'
         )}`,
-        notes: bookingResult?.data?.notes
+        notes: bookingResult.data.notes,
       })
-      setShowConfirmation(true);
-      toast.success("Test drive booked successfully!");
-
-      // Reset form
-      reset();
+      setShowConfirmation(true)
+      toast.success('Test drive booked successfully!')
+      reset()
     }
-  }, [bookingResult]);
+  }, [bookingResult, reset])
 
   useEffect(() => {
     if (bookingError) {
-      toast.error(bookingError?.message || "An error occurred while booking the test drive. Please try again.");
+      toast.error(bookingError.message || 'An error occurred while booking the test drive.')
     }
-  }, [bookingError]);
+  }, [bookingError])
 
   const onSubmit = async (data: z.infer<typeof testDriveSchema>) => {
-    // return console.log(data, "submitting")
-    const selectedSlot = availableTimeSlots.find(slot => slot.id === data.timeSlot);
-
+    const selectedSlot = availableTimeSlots.find((slot) => slot.id === data.timeSlot)
     if (!selectedSlot) {
-      return toast.error("Selected time slot is no longer available. Please choose another slot.");
+      toast.error('Selected time slot is no longer available. Please choose another slot.')
+      return
     }
 
     await fnBookTestDrive({
@@ -176,240 +168,426 @@ const TestDriveForm = ({ car, testDriverInfo }: Props) => {
       bookingDate: format(data.date, 'yyyy-MM-dd'),
       startTime: selectedSlot.startTime,
       endTime: selectedSlot.endTime,
-      notes: data.notes || ""
-    });
-
-    setBookingDetails({
-      date: data.date.toDateString(),
-      timeSlot: data.timeSlot,
-      notes: data.notes
-    });
-    setShowConfirmation(true);
+      notes: data.notes || '',
+    })
   }
 
   const handleCloseConfirmation = () => {
-    setShowConfirmation(false);
-    router.push(`/cars/${car.id}`);  // Redirect to car details page
+    setShowConfirmation(false)
+    router.push(`/cars/${car.id}`)
   }
 
-
-
   return (
-    <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-      <div className='md:col-span-2'>
-        <Card>
-          <CardContent>
-            <h2 className='text-xl font-bold mb-4'>Test Drive Form</h2>
+    <motion.div
+      className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between mb-6">
+        <Button
+          variant="ghost"
+          className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
+          onClick={() => router.back()}
+          aria-label="Go back to car details"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          Back to Car Details
+        </Button>
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <CarIcon className="h-6 w-6 text-blue-600" />
+          Book Test Drive
+        </h1>
+      </div>
 
-            <div className='aspect-video rounded-lg overflow-hidden relative mb-4'>
-              {car.images && car.images.length > 0 ? (
-                <img
-                  src={car.images[0]}
-                  alt={car.make + ' ' + car.model}
-                  className="w-full h-full object-cover rounded-lg "
-                />
-              ) : (
-                <div className='w-full h-full flex items-center justify-center bg-gray-100'>
-                  <CarIcon className="w-full h-64 text-gray-300" />
-                </div>
-              )}
-            </div>
-            <h3>
-              {car.year} {car.make} {car.model} - ${car.price.toLocaleString()}
-            </h3>
-
-            <div className="mt-2 text-xl font-bold text-blue-600">
-              ${car.price.toLocaleString()}
-            </div>
-
-            <div className='mt-4 text-sm text-gray-500'>
-              <div className="flex">
-                <span>Mileage</span>
-                <span className="font-medium">
-                  {car.mileage.toLocaleString()} miles
-                </span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Car Information */}
+          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
+              <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <CarIcon className="h-5 w-5 text-blue-600" />
+                {car.year} {car.make} {car.model}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="relative mb-4 rounded-xl overflow-hidden">
+                {car.images && car.images.length > 0 ? (
+                  <motion.img
+                    src={car.images[0]}
+                    alt={`${car.make} ${car.model}`}
+                    className="w-full h-48 object-cover rounded-xl"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                ) : (
+                  <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-xl">
+                    <CarIcon className="w-24 h-24 text-gray-300" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-color-cma/20 to-transparent rounded-xl" />
               </div>
-              <div className="flex">
-                <span>Fuel Type</span>
-                <span className="font-medium">{car.fuelType}</span>
+              <div className="text-lg font-semibold text-green-600 mb-4">
+                {formatCurrency(car.price)} / day
               </div>
-
-              <div className="flex">
-                <span>Transmission</span>
-                <span className="font-medium">{car.transmission}</span>
-              </div>
-
-              <div className="flex">
-                <span>Body Type</span>
-                <span className="font-medium">{car.bodyType}</span>
-              </div>
-
-              <div className="flex">
-                <span>Color</span>
-                <span className="font-medium">{car.color}</span>
-              </div>
-
-
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <h2>Dealership Information</h2>
-            <div className='text-sm font-bold mb-4'>
-              <p className="font-medium">{dealerShip?.name || "N/A"}</p>
-              <p>{dealerShip?.address || "N/A"}</p>
-              <p>Phone: {dealerShip?.phone || "N/A"}</p>
-              <p>Email: {dealerShip?.email || "N/A"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div>
-          <Card>
-            <CardContent>
-              <h2 className="text-xl">Schedule Test Drive</h2>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
                 <div>
-                  <Label htmlFor="date" className="block mb-1 font-medium">
+                  <span className="font-medium">Mileage:</span>{' '}
+                  {car.mileage.toLocaleString()} miles
+                </div>
+                <div>
+                  <span className="font-medium">Fuel Type:</span> {car.fuelType}
+                </div>
+                <div>
+                  <span className="font-medium">Transmission:</span> {car.transmission}
+                </div>
+                <div>
+                  <span className="font-medium">Body Type:</span> {car.bodyType}
+                </div>
+                <div>
+                  <span className="font-medium">Color:</span> {car.color}
+                </div>
+                {car.seats && (
+                  <div>
+                    <span className="font-medium">Seats:</span> {car.seats}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Schedule Test Drive Form */}
+          <Card className="shadow-lg border border-gray-100 rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
+              <CardTitle className="text-xl font-bold text-gray-800">Schedule Your Test Drive</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <div>
+                  <Label htmlFor="date" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-blue-600" />
                     Select Date
                   </Label>
-                  <Controller name="date" control={control} render={({ field }: { field: any }) => {
-                    return (
-                      <div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="w-full justify-between" >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? format(field.value as Date, "PPP") : "Select Date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode='single'
-                              selected={field.value}
-                              onSelect={field.onChange}
-
-                              disabled={isDayDisabled}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        {errors.date && <p className="text-sm text-red-600 mt-1">{errors.date.message}</p>}
-                      </div>
-                    )
-                  }} />
+                  <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                      <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-between text-gray-600 border-gray-300 rounded-lg hover:bg-gray-50 py-6 text-base"
+                                  aria-label="Select test drive date"
+                                >
+                                  <CalendarIcon className="mr-2 h-5 w-5 text-blue-600" />
+                                  {field.value ? format(field.value, 'PPP') : 'Select Date'}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={isDayDisabled}
+                                  className="rounded-lg shadow-sm border border-gray-200"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                            Choose a date for your test drive
+                            <Tooltip.Arrow className="fill-gray-900" />
+                          </Tooltip.Content>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+                    )}
+                  />
+                  {errors.date && (
+                    <p className="text-sm text-red-600 mt-1">{errors.date.message}</p>
+                  )}
                 </div>
 
                 <div>
-                  <Label htmlFor="timeSlot" className="block mb-1 font-medium">
-                    Select Time
+                  <Label htmlFor="timeSlot" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    Select Time Slot
                   </Label>
-                  <Controller name="timeSlot" control={control} render={({ field }: { field: any }) => {
-                    return (
-                      <div>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={!selectedDate || availableTimeSlots.length === 0}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue
-                              placeholder={!selectedDate ? "Select date first" : availableTimeSlots.length === 0 ? "No available time slots" : "Select Time Slot"}
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableTimeSlots.map((slot: TimeSlot) => (
-                              <SelectItem key={slot.id} value={slot.id}>
-                                {slot.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {errors.timeSlot && <p className="text-sm text-red-600 mt-1">{errors.timeSlot.message}</p>}
-                      </div>
-                    )
-                  }} />
-                </div>
-                {/* Notes Section */}
-                <div className='space-y-2'>
-                  <Label htmlFor="notes" className="block mb-1 font-medium">Notes (Optional)</Label>
-                  <Controller name="notes" control={control} render={({ field }: { field: any }) => {
-                    return (
-                      <Textarea
-                        {...field}
-                        placeholder="Enter any additional notes here..."
-                        className='min-h-24'
-                      />
-                    )
-                  }} />
-                </div>
-                <Button type="submit"
-                  className='w-full mt-4'
-                  disabled={bookingInProcess}
-                >
-                  {bookingInProcess ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Booking...
-                    </>
-                  ) : (
-                    "Book Test Drive"
+                  <Controller
+                    name="timeSlot"
+                    control={control}
+                    render={({ field }) => (
+                      <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={!selectedDate || availableTimeSlots.length === 0}
+                            >
+                              <SelectTrigger
+                                className="w-full text-gray-600 border-gray-300 rounded-lg hover:bg-gray-50 py-6 text-base"
+                                aria-label="Select test drive time slot"
+                              >
+                                <SelectValue
+                                  placeholder={
+                                    !selectedDate
+                                      ? 'Select date first'
+                                      : availableTimeSlots.length === 0
+                                      ? 'No available time slots'
+                                      : 'Select Time Slot'
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-lg shadow-sm max-h-60 overflow-y-auto">
+                                {availableTimeSlots.map((slot) => (
+                                  <SelectItem key={slot.id} value={slot.id} className="py-3 text-base">
+                                    {slot.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                            Choose a time slot for your test drive
+                            <Tooltip.Arrow className="fill-gray-900" />
+                          </Tooltip.Content>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+                    )}
+                  />
+                  {errors.timeSlot && (
+                    <p className="text-sm text-red-600 mt-1">{errors.timeSlot.message}</p>
                   )}
-                </Button>
+                </div>
+
+                <div>
+                  <Label htmlFor="notes" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                    Additional Notes (Optional)
+                  </Label>
+                  <Controller
+                    name="notes"
+                    control={control}
+                    render={({ field }) => (
+                      <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <Textarea
+                              {...field}
+                              placeholder="Enter any special requests, preferred contact method, or other notes..."
+                              className="min-h-[120px] border-gray-300 rounded-lg focus:ring-blue-500 text-base p-4"
+                              aria-label="Additional notes for test drive"
+                            />
+                          </Tooltip.Trigger>
+                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                            Add any special requests or notes
+                            <Tooltip.Arrow className="fill-gray-900" />
+                          </Tooltip.Content>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+                    )}
+                  />
+                  {errors.notes && (
+                    <p className="text-sm text-red-600 mt-1">{errors.notes.message}</p>
+                  )}
+                </div>
+
+                <Separator className="my-4" />
+
+                <Tooltip.Provider>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <Button
+                        type="submit"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-6 text-lg font-semibold transition-transform duration-200 hover:scale-105"
+                        disabled={bookingInProcess || !isValid}
+                        aria-label="Book test drive"
+                      >
+                        {bookingInProcess ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Booking...
+                          </>
+                        ) : (
+                          'Book Test Drive Now'
+                        )}
+                      </Button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                      Submit your test drive booking
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
               </form>
             </CardContent>
           </Card>
         </div>
+
+        {/* Sidebar: Dealership and Existing Bookings */}
+        <motion.div
+          className="space-y-6 lg:col-span-1"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+        >
+          {/* Dealership Details */}
+          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
+              <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-blue-600" />
+                Dealership Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-3 text-gray-600 text-sm">
+              <p className="font-semibold text-gray-800 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                {dealerShip?.name || 'N/A'}
+              </p>
+              <p className="pl-6">{dealerShip?.address || 'N/A'}</p>
+              <p className="flex items-center gap-2 pl-6">
+                <Phone className="h-4 w-4 text-blue-600" />
+                {dealerShip?.phone || 'N/A'}
+              </p>
+              <p className="flex items-center gap-2 pl-6">
+                <Mail className="h-4 w-4 text-blue-600" />
+                {dealerShip?.email || 'N/A'}
+              </p>
+              {dealerShip?.website && (
+                <p className="flex items-center gap-2 pl-6">
+                  <Globe className="h-4 w-4 text-blue-600" />
+                  <a
+                    href={dealerShip.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {dealerShip.website}
+                  </a>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Existing Bookings */}
+          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
+              <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-blue-600" />
+                Your Existing Bookings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              {existingBookings.length > 0 ? (
+                <ul className="space-y-4 text-sm text-gray-600">
+                  {existingBookings.map((booking, index) => (
+                    <li key={index} className="border-b pb-3">
+                      <p className="font-semibold text-gray-800">
+                        {format(new Date(booking.bookingDate), 'MMMM d, yyyy')}
+                      </p>
+                      <p>
+                        Time: {format(parseISO(`2023-01-01T${booking.startTime}`), 'h:mm a')} - {format(parseISO(`2023-01-01T${booking.endTime}`), 'h:mm a')}
+                      </p>
+                      {booking.notes && <p className="text-gray-500 italic">Notes: {booking.notes}</p>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-center text-gray-500">No existing bookings. Schedule one now!</p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-            {/* Confirmation Dialog */}
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              Test Drive Booked Successfully
-            </DialogTitle>
-            <DialogDescription>
-              Your test drive has been confirmed with the following details:
-            </DialogDescription>
-          </DialogHeader>
 
-          {bookingDetails && (
-            <div className="py-4">
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="font-medium">Car:</span>
-                  <span>
-                    {car.year} {car.make} {car.model}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Date:</span>
-                  <span>{bookingDetails.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Time Slot:</span>
-                  <span>{bookingDetails.timeSlot}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Dealership:</span>
-                  <span>{dealerShip?.name || "CMA Motors"}</span>
-                </div>
-              </div>
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {showConfirmation && (
+          <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+            <DialogContent className="sm:max-w-md rounded-2xl shadow-xl">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+              >
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    Test Drive Booked Successfully
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600 mt-2">
+                    Your test drive has been confirmed. Here's a summary:
+                  </DialogDescription>
+                </DialogHeader>
 
-              <div className="mt-4 bg-blue-50 p-3 rounded text-sm text-blue-700">
-                Please arrive 10 minutes early with your driver's license.
-              </div>
-            </div>
-          )}
+                {bookingDetails && (
+                  <div className="py-4 space-y-3 text-gray-700 text-sm">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Car Model:</span>
+                      <span>
+                        {car.year} {car.make} {car.model}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Date:</span>
+                      <span>{bookingDetails.date}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Time Slot:</span>
+                      <span>{bookingDetails.timeSlot}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Dealership:</span>
+                      <span>{dealerShip?.name || 'CMA Motors'}</span>
+                    </div>
+                    {bookingDetails.notes && (
+                      <div className="flex flex-col">
+                        <span className="font-semibold">Notes:</span>
+                        <span className="text-gray-600">{bookingDetails.notes}</span>
+                      </div>
+                    )}
+                    <Separator className="my-4" />
+                    <div className="mt-2 bg-blue-50 p-4 rounded-lg text-sm text-blue-700 flex flex-col gap-2">
+                      <p className="font-semibold">Important Reminders:</p>
+                      <ul className="list-disc ml-4 space-y-1">
+                        <li>Arrive 10 minutes early with your driver's license.</li>
+                        <li>Contact the dealership if you need to reschedule.</li>
+                        <li>Enjoy your test drive!</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
 
-          <div className="flex justify-end">
-            <Button onClick={handleCloseConfirmation}>Done</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+                <div className="flex justify-end mt-4">
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger asChild>
+                        <Button
+                          onClick={handleCloseConfirmation}
+                          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-6 text-base font-semibold transition-transform duration-200 hover:scale-105"
+                          aria-label="Close confirmation and return to car details"
+                        >
+                          Got It!
+                        </Button>
+                      </Tooltip.Trigger>
+                      <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                        Return to car details
+                        <Tooltip.Arrow className="fill-gray-900" />
+                      </Tooltip.Content>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
+                </div>
+              </motion.div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 

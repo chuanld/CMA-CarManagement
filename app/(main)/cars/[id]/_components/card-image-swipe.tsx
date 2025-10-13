@@ -22,7 +22,7 @@ const CardImageSwipe = ({ car }: { car: any }) => {
     const [open, setOpen] = useState(false);
     const [index, setIndex] = useState(0);
     return (
-        <>
+        <div className="rounded-xl shadow-sm">
             {/* Gallery Section */}
             <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-indigo-500" />
@@ -41,7 +41,7 @@ const CardImageSwipe = ({ car }: { car: any }) => {
                         <img
                             src={img}
                             alt={`Car ${i + 1}`}
-                            className="rounded-xl w-full h-64 object-cover shadow-md hover:scale-105 transition-transform duration-300"
+                            className="rounded-xl w-full h-auto object-cover shadow-md hover:scale-105 transition-transform duration-300"
                         />
                         <div
                             onClick={() => {
@@ -61,7 +61,7 @@ const CardImageSwipe = ({ car }: { car: any }) => {
                 slides={car.images.map((img: string) => ({ src: img }))}
             />
 
-        </>
+        </div>
     )
 }
 

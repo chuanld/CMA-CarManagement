@@ -21,8 +21,8 @@ const TestDrivePage = async ({params}: { params: { id: string } }) => {
     }
 
   return (
-    <div className='container mx-auto px-6 py-10'>
-        <h1 className="text-6xl mb-6 gradient-title">Book a Test Drive</h1>
+    <div className=' '>
+        
         <TestDriveForm car={result.data} testDriverInfo={result.data.testDriverInfo} />
     </div>
   )

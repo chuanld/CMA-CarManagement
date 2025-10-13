@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 
 // Helper function to format time
-const formatTime = (timeString:string) => {
+const formatTime = (timeString: string) => {
   try {
     return format(parseISO(`2022-01-01T${timeString}`), "h:mm a");
   } catch (error) {
@@ -27,7 +27,7 @@ const formatTime = (timeString:string) => {
 };
 
 // Helper function for status badge
-const getStatusBadge = (status:string) => {
+const getStatusBadge = (status: string) => {
   switch (status) {
     case "PENDING":
       return <Badge className="bg-amber-100 text-amber-800">Pending</Badge>;
@@ -52,7 +52,7 @@ export function TestDriveCard({
   isAdmin = false,
   isCancelling = false,
   renderStatusSelector = () => null,
-}:any) {
+}: any) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   // Handle cancel
@@ -66,20 +66,19 @@ export function TestDriveCard({
   return (
     <>
       <Card
-        className={`overflow-hidden ${
-          isPast ? "opacity-80 hover:opacity-100 transition-opacity" : ""
-        }`}
+        className={`overflow-hidden ${isPast ? "opacity-80 hover:opacity-100 transition-opacity" : ""
+          }`}
       >
         <div className="flex flex-col sm:flex-row">
           {/* Car Image - Left */}
           <div className="sm:w-1/4 relative h-40 sm:h-auto">
             {booking.car.images && booking.car.images.length > 0 ? (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-0 pb-[56.25%] overflow-hidden rounded-lg shadow-md">
                 <Image
                   src={booking.car.images[0]}
                   alt={`${booking.car.make} ${booking.car.model}`}
                   fill
-                  className="object-cover"
+                  className="object-cover w-full h-full transition-transform duration-300 ease-in-out hover:scale-105"
                 />
               </div>
             ) : (
@@ -150,20 +149,20 @@ export function TestDriveCard({
               </Button>
               {(booking.status === "PENDING" ||
                 booking.status === "CONFIRMED") && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setCancelDialogOpen(true)}
-                  disabled={isCancelling}
-                >
-                  {isCancelling ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Cancel"
-                  )}
-                </Button>
-              )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setCancelDialogOpen(true)}
+                    disabled={isCancelling}
+                  >
+                    {isCancelling ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Cancel"
+                    )}
+                  </Button>
+                )}
             </div>
           )}
         </div>

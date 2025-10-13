@@ -1,81 +1,263 @@
-import React from "react";
-import { Button } from "./ui/button";
-import { Heart, CarFront, Layout, ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
-import { checkUser } from "@/lib/checkUser";
-import Image from "next/image";
+'use client'
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from './ui/button'
+import { Heart, CarFront, Layout, ArrowLeft, Menu, X } from 'lucide-react'
+import Link from 'next/link'
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/nextjs'
+import Image from 'next/image'
+import * as Tooltip from '@radix-ui/react-tooltip'
 
-const Header = async ({isAdminPage=false}) => {
-    const user = await checkUser();
-    const isAdmin = user?.role === 'ADMIN'
-    // const isAdmin = true
+interface HeaderProps {
+  isAdminPage?: boolean
+}
+
+const Header = ({ isAdminPage = false }: HeaderProps) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { user } = useUser() // Client-side user data
+  const isAdmin = user?.publicMetadata?.role === 'ADMIN'
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
+
   return (
-    <header className='fixed  top-0 w-full bg-[#161920] backdrop-blur-md z-50 '>
-        <nav className='mx-auto px-4 py-4 flex items-center justify-between'>
-            <Link href={isAdminPage ? '/admin' : '/'}>
-                <Image src={"/chuan_cma.png"} alt="Car Marketplace Logo" width={200} height={60}  className='h-12 w-auto object-contain'/>
-            </Link>
-            <div className="flex items-center space-x-4">
+    <motion.header
+      className="fixed top-0 w-full bg-bg-cma/90 backdrop-blur-md z-50 shadow-lg"
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <Link href={isAdminPage ? '/admin' : '/'}>
+          <Image
+            src="/chuan_cma.png"
+            alt="Car MarketAI Logo"
+            width={200}
+            height={60}
+            className="h-12 w-auto object-contain"
+            priority
+          />
+        </Link>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-4">
           {isAdminPage ? (
-            <>
-              <Link href="/">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <ArrowLeft size={18} />
-                  <span>Back to App</span>
-                </Button>
-              </Link>
-            </>
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Link href="/">
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-bg-cma hover:text-white transition-colors rounded-lg"
+                    >
+                      <ArrowLeft size={18} />
+                      <span>Back to App</span>
+                    </Button>
+                  </Link>
+                </Tooltip.Trigger>
+                <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                  Return to the main application
+                  <Tooltip.Arrow className="fill-gray-900" />
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </Tooltip.Provider>
           ) : (
             <SignedIn>
               {!isAdmin && (
-                <Link
-                  href="/reservations"
-                  className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
-                >
-                  <Button variant="outline">
-                    <CarFront size={18} />
-                    <span className="hidden md:inline">My Reservations</span>
-                  </Button>
-                </Link>
+                <Tooltip.Provider>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <Link href="/reservations">
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2  text-black-500 hover:bg-bg-cma hover:text-white transition-colors rounded-lg"
+                        >
+                          <CarFront size={18} />
+                          <span>My Reservations</span>
+                        </Button>
+                      </Link>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                      View your car reservations
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
               )}
-              <a href="/saved-cars">
-                <Button className="flex items-center gap-2">
-                  <Heart size={18} />
-                  <span className="hidden md:inline">Saved Cars</span>
-                </Button>
-              </a>
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <Link href="/saved-cars">
+                      <Button
+                        className="flex items-center gap-2 bg-bg-cma hover:bg-bg-cma text-white rounded-lg transition-colors"
+                      >
+                        <Heart size={18} />
+                        <span>Saved Cars</span>
+                      </Button>
+                    </Link>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                    View your saved cars
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              </Tooltip.Provider>
               {isAdmin && (
-                <Link href="/admin">
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Layout size={18} />
-                    <span className="hidden md:inline">Admin Portal</span>
-                  </Button>
-                </Link>
+                <Tooltip.Provider>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <Link href="/admin">
+                        <Button
+                          variant="outline"
+                          className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
+                        >
+                          <Layout size={18} />
+                          <span>Admin Portal</span>
+                        </Button>
+                      </Link>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                      Access the admin dashboard
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
               )}
             </SignedIn>
           )}
 
           <SignedOut>
             {!isAdminPage && (
-              <SignInButton forceRedirectUrl="/">
-                <Button variant="outline">Login</Button>
-              </SignInButton>
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <SignInButton forceRedirectUrl="/">
+                      <Button
+                        variant="outline"
+                        className="border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
+                      >
+                        Login
+                      </Button>
+                    </SignInButton>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                    Sign in to your account
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              </Tooltip.Provider>
             )}
           </SignedOut>
 
           <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-10 h-10",
-                },
-              }}
-            />
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        avatarBox: 'w-10 h-10 rounded-full border-2 border-gray-300',
+                      },
+                    }}
+                  />
+                </Tooltip.Trigger>
+                <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
+                  Manage your profile
+                  <Tooltip.Arrow className="fill-gray-900" />
+                </Tooltip.Content>
+              </Tooltip.Root>
+            </Tooltip.Provider>
           </SignedIn>
         </div>
-        </nav>
-    </header>
+
+        {/* Mobile Menu Toggle */}
+        <div className="md:hidden">
+          <Button
+            variant="ghost"
+            className="text-gray-200 hover:text-blue-600"
+            onClick={toggleMobileMenu}
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </Button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            className="md:hidden bg-color-cma/95 backdrop-blur-md border-t border-gray-700"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="flex flex-col items-center py-4 space-y-4">
+              {isAdminPage ? (
+                <Link href="/">
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
+                  >
+                    <ArrowLeft size={18} />
+                    <span>Back to App</span>
+                  </Button>
+                </Link>
+              ) : (
+                <SignedIn>
+                  {!isAdmin && (
+                    <Link href="/reservations">
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
+                      >
+                        <CarFront size={18} />
+                        <span>My Reservations</span>
+                      </Button>
+                    </Link>
+                  )}
+                  <Link href="/saved-cars">
+                    <Button
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white w-full max-w-xs rounded-lg"
+                    >
+                      <Heart size={18} />
+                      <span>Saved Cars</span>
+                    </Button>
+                  </Link>
+                  {isAdmin && (
+                    <Link href="/admin">
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
+                      >
+                        <Layout size={18} />
+                        <span>Admin Portal</span>
+                      </Button>
+                    </Link>
+                  )}
+                </SignedIn>
+              )}
+
+              <SignedOut>
+                {!isAdminPage && (
+                  <SignInButton forceRedirectUrl="/">
+                    <Button
+                      variant="outline"
+                      className="border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
+                    >
+                      Login
+                    </Button>
+                  </SignInButton>
+                )}
+              </SignedOut>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.header>
   )
 }
 

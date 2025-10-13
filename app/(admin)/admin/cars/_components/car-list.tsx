@@ -6,34 +6,127 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatCurrency, searchDebounce } from '@/lib/helper'
-import { ApiResponse } from '@/types/api'
-import { Car } from '@/types/car'
-import { CarIcon, Check, Eye, Loader, Loader2, MoreHorizontal, Plus, Search, SparklesIcon, Star, StarOff, Trash, WatchIcon, X } from 'lucide-react'
+import { ApiResponse, CarListApiResponse, FilterOptions } from '@/types/api'
+import { Car, GETCARS } from '@/types/car'
+import { CarIcon, Check, Eye, Loader, Loader2, MoreHorizontal, Plus, SparklesIcon, Star, StarOff, Trash, WatchIcon, X } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import PaginationToolbar from '../../_components/pagination'
+import usePagination from '@/app/hooks/use-pagination'
+import FiltersToolbar from '../../_components/filters-toolbar'
+import { CarFilters } from '../../_components/car-filter'
+import { buildCarPayload } from '@/utils/build-payload'
+import { CarFilterSchema } from '@/schemas/carFilterSchema'
+import { buildCarQueryParams } from '@/lib/buildCarQuery'
+import { useFetch2v } from '@/app/hooks/use-fetch2'
+import { ApiQueryPayload } from '@/types/payload'
+
+
+
+interface PaginationPayload {
+    page?: number;
+    limit?: number;
+}
+
+type SortOptions = "newest" | "oldest" | "priceAsc" | "priceDesc" | "createdAt" | "price" | "year";
+type OrderBy = "asc" | "desc";
+
+
+
 
 const CarList = () => {
     const router = useRouter()
-    const [search, setSearch] = useState<string | null>(null)
+    const searchParams = useSearchParams()
     const [carToDelete, setCarToDelete] = useState<Car | null>(null)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState<Boolean>(false)
+    const [sortBy, setSortBy] = useState<SortOptions>('newest')
+    const [filters, setFilters] = useState<Partial<CarFilterSchema>>({})
+    const [searchTerm, setSearchTerm] = useState<string>('')
 
-    const { loading: loadingCars, fetchData: fetchCars, data: carsData, error: carsError } = useFetch<ApiResponse<Car[]>>(getCars);
+
+
+
+    const { loading: loadingCars, fetchData: fetchCars, data: carsData, error: carsError } = useFetch<CarListApiResponse>(getCars);
+    const {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        setTotal,
+        handlePageChange,
+    } = usePagination({ initialPage: 1, initialLimit: 2 });
+
+    //feature filter:
+    const queryString = useMemo(() => Object.fromEntries(searchParams.entries()), [searchParams]);
+
+    const buildPayload = (queryString: any) => {
+
+        const { search = '', page: pageStr, limit: limitStr, sortBy = 'newest', sortOrder = 'desc', ...rest } = queryString;
+
+        const parsedFilters = Object.entries(rest).reduce((acc, [key, value]) => {
+            if (value === "true") acc[key] = true;
+            else if (value === "false") acc[key] = false;
+            else acc[key] = value;
+            return acc;
+        }, {} as Record<string, any>);
+
+        const pageNum = parseInt(pageStr || "1", 10);
+        const limitNum = parseInt(limitStr || "5", 10);
+
+        setSearchTerm(search);
+        setSortBy(sortBy as SortOptions);
+        setFilters(parsedFilters);
+
+        // handlePageChange(pageNum);
+        // setTotal(limitNum)
+
+        return {
+            search,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+            },
+            sortBy: sortBy as SortOptions,
+            sortOrder: sortOrder    as OrderBy,
+            filters:{
+                ...parsedFilters
+            } as FilterOptions
+        }
+    }
+
     useEffect(() => {
-        fetchCars();
-    }, []);
-    const handleSearch = (query: string) => {
-        fetchCars(query)
-    }
-    const debounceSearch = useMemo(() => searchDebounce(handleSearch, 1500), []);
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value);
-        debounceSearch(e.target.value);
-    }
+    const { page: pageStr, limit: limitStr } = queryString;
+    const pageNum = parseInt(pageStr || '1', 10);
+    const limitNum = parseInt(limitStr || '5', 10);
+
+    handlePageChange(pageNum); // set hook page
+    setTotal(limitNum);        // set hook limit
+}, []); // chỉ chạy 1 lần
+
+    useEffect(() => {
+        const payload = buildPayload(queryString);
+
+
+        fetchCars(payload);
+    }, [searchParams]);
+
+    console.log(filters)
+
+
+    useEffect(() => {
+        if (carsData?.pagination?.total && carsData?.success) {
+            setTotal(carsData.pagination.total); // update total cho usePagination
+        }
+    }, [carsData]);
+
+
+
+
+
 
 
     const { loading: deletingCar, fetchData: deleteByCar, data: deleteCarData, error: deleteCarError } = useFetch<ApiResponse<Car>>(deleteCar);
@@ -44,15 +137,20 @@ const CarList = () => {
 
     //Handle side effects
     useEffect(() => {
+        const payload = buildPayload(queryString);
         if (updateCarData?.success && !updateCarError) {
             toast.success('Car updated successfully')
-            fetchCars(search)
+            
+            fetchCars(payload)
         }
         if (deleteCarData?.success && !deleteCarError) {
             toast.success('Car deleted successfully')
-            fetchCars(search)
+            fetchCars(payload)
         }
-    }, [updateCarData, updateCarError, deleteCarData, deleteCarError])
+        if (carsData?.success && carsData.pagination?.total) {
+            setTotal(carsData.pagination.total);
+        }
+    }, [updateCarData, updateCarError, deleteCarData, deleteCarError, page, limit])
 
 
     useEffect(() => {
@@ -67,10 +165,7 @@ const CarList = () => {
         }
     }, [carsError, updateCarError, deleteCarError])
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        fetchCars(search)
-    }
+
     const handleToggleFeatured = async (car: Car) => {
         await updateStatusCar(car.id, { featured: !car.featured });
     }
@@ -86,7 +181,7 @@ const CarList = () => {
 
     }
 
-
+    //Handle filter
 
 
 
@@ -106,6 +201,8 @@ const CarList = () => {
     }
 
 
+    //Filter section
+
 
     return (
         <div className='space-y-4'>
@@ -114,20 +211,16 @@ const CarList = () => {
                     <Plus className='w-4 h-4 mr-2' /> Add New Car
                 </Button>
 
-                <form onSubmit={handleSearchSubmit} className='flex items-center'>
-                    <div>
-                        <Search />
-                        <Input type="text" placeholder='Search cars...'
-                            className='ml-2'
-                            value={search || ''}
-                            onChange={handleSearchChange}
-                        />
-                    </div>
-                    <div>
-                        <Button type='submit' className='ml-2'>Search</Button>
-                    </div>
-                </form>
+                {/* <form onSubmit={handleSearchSubmit} className='flex items-center'>
+                    <FiltersToolbar
+                        onSearch={handleSearchChange}
+                        onFilterChange={handleFilterChange}
+                        onSortChange={handleSortChange}
+                    />
+                </form> */}
             </div>
+
+            <CarFilters />
 
 
             {/* Cars Table  */}
@@ -140,7 +233,6 @@ const CarList = () => {
                     ) : carsData?.success && carsData.data.length > 0 ? (
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableCaption>A List of cars</TableCaption>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className='w-24'></TableHead>
@@ -157,7 +249,7 @@ const CarList = () => {
                                     {carsData.data.map((car: Car) => {
                                         return (
                                             <TableRow key={car.id}>
-                                                <TableCell className='w-15 h-15 overflow-hidden rounded'>
+                                                <TableCell className='w-15 h-auto overflow-hidden rounded'>
                                                     {car?.images && car.images.length > 0 ? (
                                                         <Image
                                                             src={car.images[0]}
@@ -254,6 +346,18 @@ const CarList = () => {
                                         <TableCell></TableCell>
                                     </TableRow>
                                 </TableBody>
+                                {carsData?.pagination && carsData.pagination.totalPages > 1 && (
+                                    <TableFooter>
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="px-0">
+                                                <PaginationToolbar
+                                                    pagination={{ page, limit, total: totalItems, totalPages }}
+                                                    onPageChange={handlePageChange}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableFooter>
+                                )}
                             </Table>
 
                         </div>
@@ -263,7 +367,7 @@ const CarList = () => {
                             <h3 className="text-lg font-medium text-gray-900 mb-1">No cars found.</h3>
                             <p className="text-gray-500 mb-4">
                                 {
-                                    search ? `No cars match your search "${search}".` : "You haven't added any cars yet."
+                                    searchTerm ? `No cars match your search "${searchTerm}".` : "You haven't added any cars yet."
                                 }
                             </p>
                             <Button onClick={() => router.push('/admin/cars/create')}>Add Car</Button>
