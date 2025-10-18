@@ -307,12 +307,7 @@ const CarList = () => {
                                                                 <Check className='w-4 h-4 mr-2' />
                                                                 Set Available
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onClick={() => handleUpdateStatus(car, 'UNAVAILABLE')}
-                                                                disabled={(car.status === 'UNAVAILABLE') || (updatingCar)}>
-                                                                <X className='w-4 h-4 mr-2' />
-                                                                Set Unavailable
-                                                            </DropdownMenuItem>
+                                                            
                                                             <DropdownMenuItem
                                                                 onClick={() => handleUpdateStatus(car, 'PENDING')}
                                                                 disabled={(car.status === 'PENDING') || (updatingCar)}>

@@ -12,7 +12,10 @@ import Link from "next/link";
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { motion } from "framer-motion";
 import FaQ from "@/components/faq";
+import { User } from '@/types/user';
+import BreadcrumbComponent from './breadcrumClient';
 const HomePage = ({featuredCars}:{featuredCars: Car[]}) => {
+
   return (
     <div className="pt-20 flex flex-col items-center justify-center gap-8">
       {/* Hero Section */}
@@ -57,6 +60,11 @@ const HomePage = ({featuredCars}:{featuredCars: Car[]}) => {
           </motion.div>
         </div>
       </section>
+
+      <section className="w-full max-w-6xl px-4">
+        <BreadcrumbComponent />
+      </section>
+
 
       {/* Featured Cars Section */}
       <section className="py-16 md:py-24 w-full flex flex-col items-center bg-gray-100">

@@ -1,4 +1,4 @@
-import { Car, SerializeCars } from "./car";
+import { Car } from "./car";
 
 export interface ApiResponse<T> {
     success: boolean;
@@ -17,7 +17,7 @@ export interface  UseFetchResult<T> {
 
 export interface CarListApiResponse {
     success: boolean;
-    data: SerializeCars[];
+    data: Car[];
     pagination: PaginatedResponse;
     error?: string;
 }

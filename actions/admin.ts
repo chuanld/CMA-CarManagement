@@ -198,7 +198,7 @@ export async function getDashboardStats() {
         db.car.count(),
         db.car.count({ where: { status: "AVAILABLE" } }),
         db.car.count({ where: { status: "SOLD" } }),
-        db.car.count({ where: { status: "UNAVAILABLE" } }),
+        db.car.count({ where: { status: "RESERVED" } }),
         db.car.count({ where: { featured: true } }),
       ]),
 
@@ -220,7 +220,7 @@ export async function getDashboardStats() {
       ]),
 
       // --- 4Dealerships ---
-      db.dealershipInfo.count(),
+      db.dealer.count(),
 
       // --- 5Completed Test Drive IDs (for conversion rate) ---
       db.testDriveBooking.findMany({

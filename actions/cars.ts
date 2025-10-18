@@ -45,7 +45,7 @@ export async function processCarImageAI(file: File) {
             7. Fuel type (your best guess)
             8. Transmission type (your best guess)
             9. Seats (your best guess)
-            10. Price (your best guess, only show the number, no currency symbols)
+            10. Price (your best guess, only show the number following VND (VietNam currency), no currency symbols)
             11. Short Description as to be added to a car listing
 
             Format your response as a clean JSON object with these fields:
@@ -54,7 +54,7 @@ export async function processCarImageAI(file: File) {
                 "model": "",
                 "year": 0000,
                 "color": "",
-                "price": 20000,
+                "price": 2000000000,
                 "mileage": 50,
                 "bodyType": "",
                 "fuelType": "",
@@ -223,6 +223,7 @@ export async function addCar({
 
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
+      include: { dealers: true },
     });
     if (!user) {
       throw new Error("User not found");
@@ -274,7 +275,7 @@ export async function addCar({
         throw new Error("Image upload failed: " + error.message);
       }
 
-      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${filePath}`;
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URLV2}/storage/v1/object/public/car-images/${filePath}`;
       imageUrls.push(publicUrl);
     }
 
@@ -282,10 +283,31 @@ export async function addCar({
       throw new Error("No valid images uploaded");
     }
 
-    // Create Car record after uploading all images
-    const car = await db.car.create({
+    let dealer = user.dealers[0];
+    if (!dealer) {
+      dealer = await db.dealer.create({
+        data: {
+          name: user.name || "Unnamed Dealer",
+          ownerId: user.id, 
+          phone: user.phone || "updating...",
+          email: user.email,
+          address: "updating...",
+          description: "init dealer profile, please update.",
+          logoUrl: user.imageUrl || "",
+        },
+      });
+
+      await db.user.update({
+        where: { id: user.id },
+        data: { dealers: { connect: { id: dealer.id } } },
+      });
+    }
+
+    // 5️⃣ Tạo Car record kèm dealerId và images
+    await db.car.create({
       data: {
-        id: carId, // Use the same ID we used for the folder
+        id: carId,
+        dealerId: dealer.id,
         make: carData.make,
         model: carData.model,
         year: carData.year,
@@ -297,12 +319,13 @@ export async function addCar({
         bodyType: carData.bodyType,
         seats: carData.seats,
         description: carData.description,
-        status: carData.status,
-        featured: carData.featured,
-        images: imageUrls, // Store the array of image URLs
+        status: carData.status || "AVAILABLE",
+        featured: carData.featured || false,
+        images: imageUrls,
       },
     });
 
+    // 6️⃣ Revalidate path nếu dùng Next.js App Router
     revalidatePath("/admin/cars");
     return { success: true };
   } catch (err) {
@@ -493,7 +516,10 @@ export async function updateCarStatus(
   {
     status,
     featured,
-  }: { status: "AVAILABLE" | "UNAVAILABLE" | "SOLD" | "PENDING"; featured: boolean }
+  }: {
+    status: "AVAILABLE" | "UNAVAILABLE" | "SOLD" | "PENDING";
+    featured: boolean;
+  }
 ) {
   try {
     const { userId } = await auth();

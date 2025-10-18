@@ -67,12 +67,9 @@ const TestDriveList = () => {
 
   // Debounced search effect
   useEffect(() => {
-    const handler = setTimeout(() => {
       fnGetAdminTestDrives({ searchTerm, status: statusFilter });
-    }, 400);
 
-    return () => clearTimeout(handler);
-  }, [searchTerm, statusFilter, fnGetAdminTestDrives]);
+  }, [searchTerm, statusFilter]);
 
   // Update filter count
   useEffect(() => {
@@ -86,13 +83,11 @@ const TestDriveList = () => {
   useEffect(() => {
     if (resultDriverStatus?.success) {
       toast.success("Test drive status updated successfully");
-      fnGetAdminTestDrives({ searchTerm, status: statusFilter });
     }
     if (resultCancelTestDrive?.success) {
       toast.success("Test drive cancelled successfully");
-      fnGetAdminTestDrives({ searchTerm, status: statusFilter });
     }
-  }, [resultDriverStatus, resultCancelTestDrive, searchTerm, statusFilter, fnGetAdminTestDrives]);
+  }, [resultDriverStatus, resultCancelTestDrive, searchTerm, statusFilter]);
 
   // Handle errors
   useEffect(() => {

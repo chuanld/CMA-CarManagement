@@ -6,7 +6,6 @@ import { db } from "@/lib/prisma";
 import { serializeCarData } from "@/lib/helper";
 import { TestDriveBooking } from "@/types/user";
 
-
 /**
  * Books a test drive for a car
  */
@@ -30,19 +29,47 @@ export async function bookTestDrive({
     if (!user) throw new Error("User not found in database");
 
     // Check if car exists and is available
-    const car = await db.car.findUnique({
+    const car = await db.car.findFirst({
       where: { id: carId, status: "AVAILABLE" },
+      include: { dealer: {include: {workingHours: true}}}
     });
 
     if (!car) throw new Error("Car not available for test drive");
 
-    // Check if slot is already booked
+    //check working hours of dealer
+    const dealer = car.dealer;
+    if (dealer && dealer.workingHours) {
+      const dayName = new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase() as any;
+      const schedule = dealer.workingHours.find((wh)=>wh.dayOfWeek === dayName && wh.isOpen)
+
+      if (!schedule) {
+        throw new Error(`Dealer is closed on ${dayName}s. Please select another date.`);
+      }
+
+      const openHour = Math.floor(schedule.openTime / 100);
+      const closeHour = Math.floor(schedule.closeTime / 100);
+      const [startH] = startTime.split(':').map(Number);
+      const [endH] = endTime.split(':').map(Number);
+
+      if (startH < openHour || endH > closeHour) {
+        throw new Error(`Test drive time must be within dealer working hours: ${String(openHour).padStart(2,'0')}:00 - ${String(closeHour).padStart(2,'0')}:00`);
+      }
+    }
+
+    // Check book overlap
     const existingBooking = await db.testDriveBooking.findFirst({
       where: {
         carId,
         bookingDate: new Date(bookingDate),
-        startTime,
         status: { in: ["PENDING", "CONFIRMED"] },
+        OR: [
+          {
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+        ],
       },
     });
 
@@ -111,7 +138,9 @@ export async function getUserTestDrives() {
     const bookings = await db.testDriveBooking.findMany({
       where: { userId: user.id },
       include: {
-        car: true,
+        car: { include: { dealer: true } },
+        user: true,
+
       },
       orderBy: { bookingDate: "desc" },
     });

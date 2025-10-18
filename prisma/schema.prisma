@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  url       = env("DATABASE_URLV2")
+  directUrl = env("DIRECT_URLV2")
 }
 
 model User {
@@ -18,8 +18,32 @@ model User {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   role        UserRole           @default(USER)
+  dealers     Dealer[]           @relation("UserDealer")
+  reviews     Review[]
   testDrives  TestDriveBooking[]
   savedCars   UserSavedCar[]
+}
+
+model Dealer {
+  id           String        @id @default(uuid())
+  name         String
+  address      String
+  phone        String
+  email        String        @unique
+  description  String?
+  logoUrl      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  ownerId      String?
+  archived     Boolean       @default(false)
+  avgRating    Float?        @default(0)
+  reviewCount  Int           @default(0)
+  cars         Car[]
+  owner        User?         @relation("UserDealer", fields: [ownerId], references: [id])
+  reviews      Review[]      @relation("DealerReviews")
+  workingHours WorkingHour[]
+
+  @@index([name])
 }
 
 model Car {
@@ -27,7 +51,7 @@ model Car {
   make              String
   model             String
   year              Int
-  price             Decimal            @db.Decimal(10, 2)
+  price             Decimal            @db.Decimal(13, 2)
   mileage           Int
   color             String
   fuelType          String
@@ -40,6 +64,15 @@ model Car {
   images            String[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  avgRating         Float?             @default(0)
+  countViews        Int                @default(0)
+  dealerId          String?
+  durationView      Int                @default(0)
+  reviewCount       Int                @default(0)
+  statusChangedAt   DateTime?
+  statusChangedBy   String?
+  dealer            Dealer?            @relation(fields: [dealerId], references: [id])
+  reviews           Review[]           @relation("CarReviews")
   testDriveBookings TestDriveBooking[]
   savedBy           UserSavedCar[]
 
@@ -50,32 +83,22 @@ model Car {
   @@index([status])
   @@index([fuelType])
   @@index([featured])
-}
-
-model DealershipInfo {
-  id           String        @id @default(uuid())
-  name         String        @default("Vina Motors")
-  address      String        @default("San FansixLong, CA 94016")
-  phone        String        @default("+1 (555) 123-4567")
-  email        String        @default("contact@vina-motors.com")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  workingHours WorkingHour[]
+  @@index([countViews])
 }
 
 model WorkingHour {
-  id           String         @id @default(uuid())
-  dealershipId String
-  dayOfWeek    DayOfWeek
-  openTime     String
-  closeTime    String
-  isOpen       Boolean        @default(true)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  dealership   DealershipInfo @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  dayOfWeek DayOfWeek
+  isOpen    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  dealerId  String
+  openTime  Int
+  closeTime Int
+  dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
-  @@unique([dealershipId, dayOfWeek])
-  @@index([dealershipId])
+  @@unique([dealerId, dayOfWeek])
+  @@index([dealerId])
   @@index([dayOfWeek])
   @@index([isOpen])
 }
@@ -104,13 +127,32 @@ model TestDriveBooking {
   notes       String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  car         Car           @relation(fields: [carId], references: [id])
-  user        User          @relation(fields: [userId], references: [id])
+  car         Car           @relation(fields: [carId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([carId])
   @@index([userId])
   @@index([bookingDate])
   @@index([status])
+  @@index([carId, bookingDate])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  carId     String?
+  dealerId  String?
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  car       Car?     @relation("CarReviews", fields: [carId], references: [id], onDelete: Cascade)
+  dealer    Dealer?  @relation("DealerReviews", fields: [dealerId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([dealerId])
+  @@index([rating])
 }
 
 enum UserRole {
@@ -120,8 +162,9 @@ enum UserRole {
 
 enum CarStatus {
   AVAILABLE
-  UNAVAILABLE
+  RESERVED
   SOLD
+  MAINTENANCE
   PENDING
 }
 

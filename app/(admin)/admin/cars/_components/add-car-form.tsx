@@ -110,7 +110,6 @@ const AddCarForm = () => {
       },
       images: uploadedImages
     })
-    console.log(data, 'data');
   }
 
   const onMultiImagesDrop = useCallback((acceptedFiles: File[]) => {

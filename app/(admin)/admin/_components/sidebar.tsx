@@ -2,32 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Car, Calendar, Cog, LogOut } from "lucide-react";
+import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
 
 // Navigation items
 const routes = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/admin",
-  },
-  {
-    label: "Cars",
-    icon: Car,
-    href: "/admin/cars",
-  },
-  {
-    label: "Test Drives",
-    icon: Calendar,
-    href: "/admin/test-drives",
-  },
-  {
-    label: "Settings",
-    icon: Cog,
-    href: "/admin/settings",
-  },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Cars", icon: Car, href: "/admin/cars" },
+  { label: "Test Drives", icon: Calendar, href: "/admin/test-drives" },
+  { label: "Dealers", icon: Users, href: "/admin/dealers" },
+  // { label: "Settings", icon: Cog, href: "/admin/settings" },
 ];
 
 export const Sidebar = () => {

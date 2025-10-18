@@ -1,5 +1,5 @@
 'use client'
-import { deleteUser, getDealerShipInfo, getUsers, saveWorkingHours, updateUserRole } from '@/actions/settings'
+import { deleteUser, getdealer, getUsers, saveWorkingHours, updateUserRole } from '@/actions/settings'
 import useFetch from '@/app/hooks/use-fetch'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DAYS } from '@/lib/data'
 import { ApiResponse } from '@/types/api'
-import { DealershipInfo, WorkingHour } from '@/types/settings'
+import {  WorkingHour } from '@/types/settings'
 import { Clock, Loader2, Save, Search, Shield, User, UserX } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -30,7 +30,7 @@ const SettingsForm = () => {
     const [userSearch, setUserSearch] = useState<string>('')
     const [selectedTab, setSelectedTab] = useState<string>('hours')
 
-    const { loading: loadingDealerShipInfo, fetchData: fetchDealerShipInfo, data: dealerShipInfo, error: errorDealerShipInfo } = useFetch<ApiResponse<any>>(getDealerShipInfo)
+    const { loading: loadingDealerShipInfo, fetchData: fetchDealerShipInfo, data: dealerShipInfo, error: errorDealerShipInfo } = useFetch<ApiResponse<any>>(getdealer)
     const { loading: loadingWorkingHours, fetchData: fnSaveWorkingHours, data: resultWorkingHours, error: errorWorkingHours } = useFetch<ApiResponse<any>>(saveWorkingHours)
     const { loading: loadingUsers, fetchData: fetchUsers, data: users, error: errorUsers } = useFetch<ApiResponse<any>>(getUsers)
     const { loading: loadingUserUpdateRole, fetchData: fetchUserUpdateRole, data: userUpdateRole, error: errorUserUpdateRole } = useFetch<ApiResponse<any>>(updateUserRole)

@@ -5,6 +5,7 @@ import { Car } from '@/types/car'
 import { ApiResponse, FilterOptions } from '@/types/api'
 import CarFilters from './_components/car-filters'
 import { Suspense } from 'react'
+import BreadcrumbComponent from '@/components/breadcrumClient'
 
 export const metadata = {
     title: 'Car Listings | CMA',
@@ -16,7 +17,9 @@ const CarListPage = async () => {
   return (
     <div className='container mx-auto px-4 py-12'>
       <Suspense fallback={<div>Loading...</div>}>
-        <h1 className='text-6xl mb-4 gradient-title'>Browser Cars</h1>
+      <section className="mb-8">
+        <BreadcrumbComponent />
+      </section>
        <div className='flex flex-col lg:flex-row gap-8'>
         <div className='w-full lg:w-1/4 flex-shrink-0'>
             <CarFilters filters={filtersData} />

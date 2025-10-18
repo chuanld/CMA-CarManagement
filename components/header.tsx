@@ -4,17 +4,19 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from './ui/button'
 import { Heart, CarFront, Layout, ArrowLeft, Menu, X } from 'lucide-react'
 import Link from 'next/link'
-import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from '@clerk/nextjs'
+import { SignedIn, SignedOut, SignInButton, SignUp, SignUpButton, UserButton, useUser } from '@clerk/nextjs'
 import Image from 'next/image'
 import * as Tooltip from '@radix-ui/react-tooltip'
+import { User } from '@/types/user'
 
 interface HeaderProps {
   isAdminPage?: boolean
+  user?: any
 }
 
-const Header = ({ isAdminPage = false }: HeaderProps) => {
+const Header = ({ isAdminPage = false, user }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { user } = useUser() // Client-side user data
+  // const { user } = useUser() // Client-side user data
   const isAdmin = user?.publicMetadata?.role === 'ADMIN'
 
   const toggleMobileMenu = () => {
@@ -133,7 +135,8 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
               <Tooltip.Provider>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
-                    <SignInButton forceRedirectUrl="/">
+                    <div>
+                      <SignInButton forceRedirectUrl="/">
                       <Button
                         variant="outline"
                         className="border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
@@ -141,6 +144,16 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
                         Login
                       </Button>
                     </SignInButton>
+                    <SignUpButton forceRedirectUrl="/">
+                      <Button
+                        variant="outline"
+                        className="ml-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
+                      >
+                        Sign Up
+                      </Button>
+                    </SignUpButton>
+                    </div>
+                    
                   </Tooltip.Trigger>
                   <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
                     Sign in to your account

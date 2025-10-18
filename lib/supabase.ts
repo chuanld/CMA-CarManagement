@@ -30,8 +30,8 @@
 import { createServerClient } from "@supabase/ssr";
 
 export const createClient = (cookieStore: any) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URLV2!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEYV2!;
 
   return createServerClient(
     supabaseUrl,

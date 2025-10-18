@@ -4,7 +4,7 @@ import { User } from "@/types/user";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
-export async function getDealerShipInfo() {
+export async function getdealer() {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -18,7 +18,8 @@ export async function getDealerShipInfo() {
       throw new Error("User not found");
     }
 
-    let dealership = await db.dealershipInfo.findFirst({
+    let dealership = await db.dealer.findFirst({
+      where: { ownerId: user.id },
       include: {
         workingHours: {
           orderBy: {
@@ -29,38 +30,38 @@ export async function getDealerShipInfo() {
     });
 
     if (!dealership) {
-      dealership = await db.dealershipInfo.create({
+      dealership = await db.dealer.create({
         data: {
           workingHours: {
             create: [
               {
                 dayOfWeek: "MONDAY",
-                openTime: "09:00",
-                closeTime: "18:00",
+                openTime: 900,
+                closeTime: 1800,
                 isOpen: true,
               },
               {
                 dayOfWeek: "TUESDAY",
-                openTime: "09:00",
-                closeTime: "18:00",
+                openTime: 900,
+                closeTime: 1800,
                 isOpen: true,
               },
               {
                 dayOfWeek: "WEDNESDAY",
-                openTime: "09:00",
-                closeTime: "18:00",
+                openTime: 900,
+                closeTime: 1800,
                 isOpen: true,
               },
               {
                 dayOfWeek: "THURSDAY",
-                openTime: "09:00",
-                closeTime: "18:00",
+                openTime: 900,
+                closeTime: 1800,
                 isOpen: true,
               },
               {
                 dayOfWeek: "FRIDAY",
-                openTime: "09:00",
-                closeTime: "18:00",
+                openTime: 900,
+                closeTime: 1800,
                 isOpen: true,
               },
             ],
@@ -110,21 +111,21 @@ export async function saveWorkingHours(workingHours: any) {
       throw new Error("Forbidden");
     }
 
-    const dealership = await db.dealershipInfo.findFirst();
+    const dealership = await db.dealer.findFirst();
     if (!dealership) {
       throw new Error("Dealership not found");
     }
 
     await db.workingHour.deleteMany({
       where: {
-        dealershipId: dealership.id,
+        dealerId: dealership.id,
       },
     });
 
     for (const wh of workingHours) {
       await db.workingHour.create({
         data: {
-          dealershipId: dealership.id,
+          dealerId: dealership.id,
           dayOfWeek: wh.dayOfWeek,
           openTime: wh.openTime,
           closeTime: wh.closeTime,
@@ -256,5 +257,5 @@ export async function deleteUser(userIdToDelete: string) {
   }
 }
 
-export async function updateDealerShipInfo(data: any) {}
+export async function updatedealer(data: any) {}
 export async function getAdminUsers() {}

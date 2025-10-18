@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { formatCurrencyVND } from '@/lib/helper';
 import { FilterOptions } from '@/types/api';
 import { Check, X } from 'lucide-react';
 import React from 'react'
@@ -55,15 +56,15 @@ const CarFilterControls = ({filters, currentFilters, onFilterChange, onClearFilt
             <div className="px-2">
                 <Slider
                     min={filters.priceRanges.min || 0}
-                    max={filters.priceRanges.max || 100000}
+                    max={filters.priceRanges.max || 3000000}
                     step={100}
                     value={priceRange}
                     onValueChange={(value:[number, number]) => onFilterChange && onFilterChange('priceRange', value)}
                 />
             </div>
             <div className='flex items-center justify-between'>
-                <div className="font-medium text-sm">$ {priceRange[0]}</div>
-                <div className="font-medium text-sm">$ {priceRange[1]}</div>
+                <div className="font-medium text-sm">{formatCurrencyVND(priceRange[0])}</div>
+                <div className="font-medium text-sm">{formatCurrencyVND(priceRange[1])}</div>
             </div>
 
             {filterSections.map((section)=>(

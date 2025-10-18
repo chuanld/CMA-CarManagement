@@ -11,16 +11,22 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { motion } from "framer-motion";
 import FaQ from "@/components/faq";
 import HomePage from "@/components/homepage";
+import { checkUser } from "@/lib/checkUser";
+import Header from "@/components/header";
 
 export default async function Home() {
   const featuredCars: Car[] | any = await getFeaturedCars();
+  const user = checkUser();
 
+  console.log(featuredCars)
   // Client-side state for FAQ accordion (since server components can't handle state)
   
 
   return (
-    <div>
-      <HomePage featuredCars={featuredCars} />
-    </div>
+    <>
+      <Header user={user}/>
+      <main className="min-h-screen"><HomePage featuredCars={featuredCars}  /></main>
+      
+    </>
   );
 }

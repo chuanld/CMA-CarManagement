@@ -1,36 +1,85 @@
+
+
 'use client'
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { bookTestDrive } from '@/actions/test-drive'
 import useFetch from '@/app/hooks/use-fetch'
-import { Button } from '@/components/ui/button'
+import { 
+  Button 
+} from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card'
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog'
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover'
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { ApiResponse } from '@/types/api'
-import { Car } from '@/types/car'
-import { DealershipInfo } from '@/types/settings'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { 
+  ArrowLeft, 
+  CalendarIcon, 
+  Car as CarIcon, 
+  CheckCircle2, 
+  Clock, 
+  ClockIcon, 
+  DollarSign, 
+  Download, 
+  Globe, 
+  Loader2, 
+  Mail, 
+  MapPin, 
+  MessageSquare, 
+  Navigation2, 
+  Phone, 
+  ShieldCheck, 
+  UserCheck 
+} from 'lucide-react'
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, CalendarIcon, Car as CarIcon, CheckCircle2, Clock, Globe, Loader2, Mail, MapPin, MessageSquare, Phone } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import * as Tooltip from '@radix-ui/react-tooltip'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { formatCurrency } from '@/lib/helper'
 import { TestDriveBooking } from '@/types/user'
-import { Separator } from '@/components/ui/separator'
+import { DealershipInfo } from '@/types/settings'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Car } from '@/types/car'
+import { ApiResponse } from '@/types/api'
+
 interface TimeSlot {
   id: string
   label: string
   startTime: string
   endTime: string
+  available: boolean
 }
 
 interface TestDriveFormProps {
@@ -53,11 +102,8 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
   const router = useRouter()
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([])
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false)
-  const [bookingDetails, setBookingDetails] = useState<{
-    date: string
-    timeSlot: string
-    notes?: string
-  } | null>(null)
+  const [bookingDetails, setBookingDetails] = useState<any>(null)
+  const [selectedTab, setSelectedTab] = useState('schedule')
 
   const { control, register, handleSubmit, formState: { errors, isValid }, watch, setValue, reset } = useForm<
     z.infer<typeof testDriveSchema>
@@ -73,6 +119,9 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
   const dealerShip: DealershipInfo | undefined = testDriverInfo?.dealerShip
   const existingBookings: TestDriveBooking[] = testDriverInfo?.userTestDrives || []
   const selectedDate: Date | undefined = watch('date')
+
+  const { data: bookingResult, error: bookingError, loading: bookingInProcess, fetchData: fnBookTestDrive } =
+    useFetch<ApiResponse<any>>(bookTestDrive)
 
   const isDayDisabled = (date: Date) => {
     const today = new Date()
@@ -108,7 +157,6 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
     for (let hour = openHour; hour < closeHour; hour++) {
       const startTime = `${hour.toString().padStart(2, '0')}:00`
       const endTime = `${(hour + 1).toString().padStart(2, '0')}:00`
-
       const isBooked = existingBookings.some((booking) => {
         const bookingDate = format(new Date(booking.bookingDate), 'yyyy-MM-dd')
         return (
@@ -117,22 +165,18 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
         )
       })
 
-      if (!isBooked) {
-        slots.push({
-          id: `${startTime} - ${endTime}`,
-          label: `${startTime} - ${endTime}`,
-          startTime,
-          endTime,
-        })
-      }
+      slots.push({
+        id: `${startTime}-${endTime}`,
+        label: `${startTime} - ${endTime}`,
+        startTime,
+        endTime,
+        available: !isBooked
+      })
     }
 
     setAvailableTimeSlots(slots)
     setValue('timeSlot', '')
-  }, [selectedDate, dealerShip?.workingHours, existingBookings, setValue])
-
-  const { data: bookingResult, error: bookingError, loading: bookingInProcess, fetchData: fnBookTestDrive } =
-    useFetch<ApiResponse<TestDriveBooking>>(bookTestDrive)
+  }, [selectedDate])
 
   useEffect(() => {
     if (bookingResult?.success) {
@@ -148,7 +192,7 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
       toast.success('Test drive booked successfully!')
       reset()
     }
-  }, [bookingResult, reset])
+  }, [bookingResult])
 
   useEffect(() => {
     if (bookingError) {
@@ -158,7 +202,7 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
 
   const onSubmit = async (data: z.infer<typeof testDriveSchema>) => {
     const selectedSlot = availableTimeSlots.find((slot) => slot.id === data.timeSlot)
-    if (!selectedSlot) {
+    if (!selectedSlot || !selectedSlot.available) {
       toast.error('Selected time slot is no longer available. Please choose another slot.')
       return
     }
@@ -177,114 +221,153 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
     router.push(`/cars/${car.id}`)
   }
 
+  const getAvailabilityProgress = () => {
+    const totalSlots = availableTimeSlots.length
+    const availableSlots = availableTimeSlots.filter(slot => slot.available).length
+    return totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0
+  }
+
   return (
-    <motion.div
-      className="container mx-auto px-4 sm:px-6 py-8 max-w-4xl"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Header with Back Button */}
-      <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="ghost"
-          className="text-gray-600 hover:text-blue-600 flex items-center gap-2"
-          onClick={() => router.back()}
-          aria-label="Go back to car details"
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-100 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
         >
-          <ArrowLeft className="h-5 w-5" />
-          Back to Car Details
-        </Button>
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <CarIcon className="h-6 w-6 text-blue-600" />
-          Book Test Drive
-        </h1>
-      </div>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              className="text-gray-600 hover:text-blue-600 flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-xl"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Back to Car
+            </Button>
+            <div className="text-center">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+                Book Test Drive
+              </h1>
+              <p className="text-gray-600 mt-1">Schedule your hands-on experience</p>
+            </div>
+            <div className="w-12" />
+          </div>
+        </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Car Information */}
-          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
-              <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <CarIcon className="h-5 w-5 text-blue-600" />
-                {car.year} {car.make} {car.model}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="relative mb-4 rounded-xl overflow-hidden">
-                {car.images && car.images.length > 0 ? (
-                  <motion.img
-                    src={car.images[0]}
-                    alt={`${car.make} ${car.model}`}
-                    className="w-full h-48 object-cover rounded-xl"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                ) : (
-                  <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-xl">
-                    <CarIcon className="w-24 h-24 text-gray-300" />
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Main Content */}
+          <motion.div className="xl:col-span-3 space-y-8">
+            {/* Car Hero Card */}
+            <Card className="overflow-hidden shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-emerald-600 via-green-600 to-blue-600 p-8 text-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-black/10" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-2xl">
+                        <CarIcon className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <Badge className="bg-white/20 border-white/30">Test Drive Ready</Badge>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-white/20">
+                      {formatCurrency(car.price)}
+                    </Badge>
                   </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-color-cma/20 to-transparent rounded-xl" />
-              </div>
-              <div className="text-lg font-semibold text-green-600 mb-4">
-                {formatCurrency(car.price)} / day
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Mileage:</span>{' '}
-                  {car.mileage.toLocaleString()} miles
+                  <CardTitle className="text-3xl font-bold mb-2">
+                    {car.year} {car.make} {car.model}
+                  </CardTitle>
+                  <CardDescription className="opacity-90">
+                    Experience premium driving performance
+                  </CardDescription>
                 </div>
-                <div>
-                  <span className="font-medium">Fuel Type:</span> {car.fuelType}
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative h-64 overflow-hidden">
+                  {car.images && car.images.length > 0 ? (
+                    <motion.img
+                      src={car.images[0]}
+                      alt={`${car.make} ${car.model}`}
+                      className="w-full h-full object-cover"
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <CarIcon className="w-24 h-24 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                 </div>
-                <div>
-                  <span className="font-medium">Transmission:</span> {car.transmission}
+                <div className="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                  {[
+                    { icon: ClockIcon, label: `${car.mileage.toLocaleString()} miles`, value: 'Mileage' },
+                    { icon: Navigation2, label: car.transmission, value: 'Transmission' },
+                    { icon: ShieldCheck, label: car.fuelType, value: 'Fuel Type' },
+                    { icon: UserCheck, label: `${car.seats || 'N/A'} seats`, value: 'Capacity' },
+                    { icon: MapPin, label: car.bodyType, value: 'Body' }
+                  ].map((item, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="text-center p-3 bg-gray-50/50 rounded-xl"
+                    >
+                      <item.icon className="w-5 h-5 mx-auto mb-2 text-gray-600" />
+                      <div className="font-medium text-gray-800">{item.label}</div>
+                      <div className="text-xs text-gray-500">{item.value}</div>
+                    </motion.div>
+                  ))}
                 </div>
-                <div>
-                  <span className="font-medium">Body Type:</span> {car.bodyType}
-                </div>
-                <div>
-                  <span className="font-medium">Color:</span> {car.color}
-                </div>
-                {car.seats && (
-                  <div>
-                    <span className="font-medium">Seats:</span> {car.seats}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Schedule Test Drive Form */}
-          <Card className="shadow-lg border border-gray-100 rounded-2xl">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
-              <CardTitle className="text-xl font-bold text-gray-800">Schedule Your Test Drive</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div>
-                  <Label htmlFor="date" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-blue-600" />
-                    Select Date
-                  </Label>
-                  <Controller
-                    name="date"
-                    control={control}
-                    render={({ field }) => (
-                      <Tooltip.Provider>
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
+            {/* Booking Form */}
+            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl font-bold flex items-center gap-3 text-gray-800">
+                  <CalendarIcon className="w-6 h-6 text-emerald-600" />
+                  Schedule Your Test Drive
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Select your preferred date and time. We'll confirm availability instantly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-gray-50 rounded-2xl p-1">
+                    <TabsTrigger value="schedule" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      Schedule
+                    </TabsTrigger>
+                    <TabsTrigger value="details" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      Details
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="schedule" className="mt-6">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                      {/* Date Selection */}
+                      <div className="space-y-3">
+                        <Label className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                          <CalendarIcon className="w-5 h-5 text-emerald-600" />
+                          Choose Date
+                        </Label>
+                        <Controller
+                          name="date"
+                          control={control}
+                          render={({ field }) => (
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="w-full justify-between text-gray-600 border-gray-300 rounded-lg hover:bg-gray-50 py-6 text-base"
-                                  aria-label="Select test drive date"
+                                  className={`w-full justify-start text-left font-normal h-14 rounded-2xl border-gray-200 hover:bg-gray-50 ${!field.value && 'text-gray-500'}`}
                                 >
-                                  <CalendarIcon className="mr-2 h-5 w-5 text-blue-600" />
-                                  {field.value ? format(field.value, 'PPP') : 'Select Date'}
+                                  <CalendarIcon className="mr-3 h-5 w-5 text-emerald-600" />
+                                  {field.value ? format(field.value, 'PPP') : 'Pick a date'}
                                 </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-auto p-0" align="start">
@@ -293,301 +376,321 @@ const TestDriveForm = ({ car, testDriverInfo }: TestDriveFormProps) => {
                                   selected={field.value}
                                   onSelect={field.onChange}
                                   disabled={isDayDisabled}
-                                  className="rounded-lg shadow-sm border border-gray-200"
+                                  className="rounded-2xl border-0"
                                 />
                               </PopoverContent>
                             </Popover>
-                          </Tooltip.Trigger>
-                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                            Choose a date for your test drive
-                            <Tooltip.Arrow className="fill-gray-900" />
-                          </Tooltip.Content>
-                        </Tooltip.Root>
-                      </Tooltip.Provider>
-                    )}
-                  />
-                  {errors.date && (
-                    <p className="text-sm text-red-600 mt-1">{errors.date.message}</p>
-                  )}
-                </div>
+                          )}
+                        />
+                        {errors.date && (
+                          <p className="text-sm text-red-600 flex items-center gap-2">
+                            <ClockIcon className="w-4 h-4" />
+                            {errors.date.message}
+                          </p>
+                        )}
+                      </div>
 
-                <div>
-                  <Label htmlFor="timeSlot" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-600" />
-                    Select Time Slot
-                  </Label>
-                  <Controller
-                    name="timeSlot"
-                    control={control}
-                    render={({ field }) => (
-                      <Tooltip.Provider>
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              disabled={!selectedDate || availableTimeSlots.length === 0}
-                            >
-                              <SelectTrigger
-                                className="w-full text-gray-600 border-gray-300 rounded-lg hover:bg-gray-50 py-6 text-base"
-                                aria-label="Select test drive time slot"
-                              >
-                                <SelectValue
-                                  placeholder={
-                                    !selectedDate
-                                      ? 'Select date first'
-                                      : availableTimeSlots.length === 0
-                                      ? 'No available time slots'
-                                      : 'Select Time Slot'
-                                  }
-                                />
+                      {/* Time Slots */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                            <Clock className="w-5 h-5 text-emerald-600" />
+                            Available Times
+                          </Label>
+                          {selectedDate && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <Progress value={getAvailabilityProgress()} className="w-24 h-2" indicatorClassName="bg-emerald-600" />
+                              <span className="text-gray-600">{getAvailabilityProgress()}% available</span>
+                            </div>
+                          )}
+                        </div>
+                        <Controller
+                          name="timeSlot"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDate || availableTimeSlots.length === 0}>
+                              <SelectTrigger className="w-full h-14 rounded-2xl border-gray-200">
+                                <SelectValue placeholder={
+                                  !selectedDate ? "Select date first" : 
+                                  availableTimeSlots.length === 0 ? "No slots available" : 
+                                  "Choose time slot"
+                                } />
                               </SelectTrigger>
-                              <SelectContent className="rounded-lg shadow-sm max-h-60 overflow-y-auto">
+                              <SelectContent className="rounded-2xl max-h-60">
                                 {availableTimeSlots.map((slot) => (
-                                  <SelectItem key={slot.id} value={slot.id} className="py-3 text-base">
-                                    {slot.label}
+                                  <SelectItem 
+                                    key={slot.id} 
+                                    value={slot.id}
+                                    className={`py-4 ${!slot.available ? 'text-gray-400 bg-gray-50' : ''}`}
+                                    disabled={!slot.available}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span>{slot.label}</span>
+                                      {!slot.available && <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Booked</span>}
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                          </Tooltip.Trigger>
-                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                            Choose a time slot for your test drive
-                            <Tooltip.Arrow className="fill-gray-900" />
-                          </Tooltip.Content>
-                        </Tooltip.Root>
-                      </Tooltip.Provider>
-                    )}
-                  />
-                  {errors.timeSlot && (
-                    <p className="text-sm text-red-600 mt-1">{errors.timeSlot.message}</p>
-                  )}
-                </div>
+                          )}
+                        />
+                        {errors.timeSlot && (
+                          <p className="text-sm text-red-600">{errors.timeSlot.message}</p>
+                        )}
+                      </div>
 
-                <div>
-                  <Label htmlFor="notes" className=" mb-2 font-semibold text-gray-800 flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-blue-600" />
-                    Additional Notes (Optional)
-                  </Label>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <Tooltip.Provider>
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <Textarea
-                              {...field}
-                              placeholder="Enter any special requests, preferred contact method, or other notes..."
-                              className="min-h-[120px] border-gray-300 rounded-lg focus:ring-blue-500 text-base p-4"
-                              aria-label="Additional notes for test drive"
-                            />
-                          </Tooltip.Trigger>
-                          <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                            Add any special requests or notes
-                            <Tooltip.Arrow className="fill-gray-900" />
-                          </Tooltip.Content>
-                        </Tooltip.Root>
-                      </Tooltip.Provider>
-                    )}
-                  />
-                  {errors.notes && (
-                    <p className="text-sm text-red-600 mt-1">{errors.notes.message}</p>
-                  )}
-                </div>
+                      {/* Notes */}
+                      <div className="space-y-3">
+                        <Label className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                          <MessageSquare className="w-5 h-5 text-emerald-600" />
+                          Special Requests
+                        </Label>
+                        <Textarea
+                          {...register('notes')}
+                          placeholder="Any specific routes you'd like to test? Special requirements? Let us know!"
+                          className="min-h-[120px] rounded-2xl border-gray-200 focus:ring-emerald-500 resize-none"
+                        />
+                        {errors.notes && <p className="text-sm text-red-600">{errors.notes.message}</p>}
+                      </div>
 
-                <Separator className="my-4" />
-
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
                       <Button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-6 text-lg font-semibold transition-transform duration-200 hover:scale-105"
+                        size="lg"
+                        className="w-full h-14 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-2xl text-lg font-semibold shadow-xl disabled:opacity-50"
                         disabled={bookingInProcess || !isValid}
-                        aria-label="Book test drive"
                       >
                         {bookingInProcess ? (
                           <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Booking...
+                            <Loader2 className="mr-3 h-5 w-5 animate-spin" />
+                            Securing Your Slot...
                           </>
                         ) : (
-                          'Book Test Drive Now'
+                          'Confirm Booking'
                         )}
                       </Button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                      Submit your test drive booking
-                      <Tooltip.Arrow className="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                    </form>
+                  </TabsContent>
 
-        {/* Sidebar: Dealership and Existing Bookings */}
-        <motion.div
-          className="space-y-6 lg:col-span-1"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.4 }}
-        >
-          {/* Dealership Details */}
-          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
-              <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-blue-600" />
-                Dealership Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-3 text-gray-600 text-sm">
-              <p className="font-semibold text-gray-800 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                {dealerShip?.name || 'N/A'}
-              </p>
-              <p className="pl-6">{dealerShip?.address || 'N/A'}</p>
-              <p className="flex items-center gap-2 pl-6">
-                <Phone className="h-4 w-4 text-blue-600" />
-                {dealerShip?.phone || 'N/A'}
-              </p>
-              <p className="flex items-center gap-2 pl-6">
-                <Mail className="h-4 w-4 text-blue-600" />
-                {dealerShip?.email || 'N/A'}
-              </p>
-              {dealerShip?.website && (
-                <p className="flex items-center gap-2 pl-6">
-                  <Globe className="h-4 w-4 text-blue-600" />
-                  <a
-                    href={dealerShip.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {dealerShip.website}
-                  </a>
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                  <TabsContent value="details" className="mt-6">
+                    <div className="space-y-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-xl">
+                        <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                        <div>
+                          <h4 className="font-semibold text-gray-800">What to Expect</h4>
+                          <p>30-45 minute guided test drive with expert</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
+                        <Download className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Requirements</h4>
+                          <p>Valid driver's license • Minimum 21 years old</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-xl">
+                        <ClockIcon className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Cancellation</h4>
+                          <p>Free cancellation up to 24 hours before</p>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          {/* Existing Bookings */}
-          <Card className="shadow-lg border border-gray-100 rounded-2xl overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-50 p-4">
-              <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-blue-600" />
-                Your Existing Bookings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              {existingBookings.length > 0 ? (
-                <ul className="space-y-4 text-sm text-gray-600">
-                  {existingBookings.map((booking, index) => (
-                    <li key={index} className="border-b pb-3">
-                      <p className="font-semibold text-gray-800">
-                        {format(new Date(booking.bookingDate), 'MMMM d, yyyy')}
-                      </p>
-                      <p>
-                        Time: {format(parseISO(`2023-01-01T${booking.startTime}`), 'h:mm a')} - {format(parseISO(`2023-01-01T${booking.endTime}`), 'h:mm a')}
-                      </p>
-                      {booking.notes && <p className="text-gray-500 italic">Notes: {booking.notes}</p>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-center text-gray-500">No existing bookings. Schedule one now!</p>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Confirmation Dialog */}
-      <AnimatePresence>
-        {showConfirmation && (
-          <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-            <DialogContent className="sm:max-w-md rounded-2xl shadow-xl">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
-                    <CheckCircle2 className="h-6 w-6 text-green-600" />
-                    Test Drive Booked Successfully
-                  </DialogTitle>
-                  <DialogDescription className="text-gray-600 mt-2">
-                    Your test drive has been confirmed. Here's a summary:
-                  </DialogDescription>
-                </DialogHeader>
-
-                {bookingDetails && (
-                  <div className="py-4 space-y-3 text-gray-700 text-sm">
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Car Model:</span>
-                      <span>
-                        {car.year} {car.make} {car.model}
-                      </span>
+          {/* Sidebar */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-6 xl:sticky xl:top-8"
+          >
+            {/* Dealership Card */}
+            {dealerShip && (
+              <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MapPin className="w-5 h-5" />
+                    {dealerShip.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2 text-sm">
+                    <p className="flex items-start gap-2 text-gray-700">
+                      <MapPin className="w-4 h-4 mt-0.5 text-emerald-600 flex-shrink-0" />
+                      <span className="text-gray-600">{dealerShip.address}</span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-emerald-600" />
+                      <a href={`tel:${dealerShip.phone}`} className="text-blue-600 hover:underline font-medium">
+                        {dealerShip.phone}
+                      </a>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Date:</span>
-                      <span>{bookingDetails.date}</span>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-emerald-600" />
+                      <a href={`mailto:${dealerShip.email}`} className="text-blue-600 hover:underline font-medium">
+                        {dealerShip.email}
+                      </a>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Time Slot:</span>
-                      <span>{bookingDetails.timeSlot}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Dealership:</span>
-                      <span>{dealerShip?.name || 'CMA Motors'}</span>
-                    </div>
-                    {bookingDetails.notes && (
-                      <div className="flex flex-col">
-                        <span className="font-semibold">Notes:</span>
-                        <span className="text-gray-600">{bookingDetails.notes}</span>
+                    {dealerShip.website && (
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-emerald-600" />
+                        <a href={dealerShip.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">
+                          Visit Website
+                        </a>
                       </div>
                     )}
-                    <Separator className="my-4" />
-                    <div className="mt-2 bg-blue-50 p-4 rounded-lg text-sm text-blue-700 flex flex-col gap-2">
-                      <p className="font-semibold">Important Reminders:</p>
-                      <ul className="list-disc ml-4 space-y-1">
-                        <li>Arrive 10 minutes early with your driver's license.</li>
-                        <li>Contact the dealership if you need to reschedule.</li>
-                        <li>Enjoy your test drive!</li>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full mt-4 border-emerald-200 hover:bg-emerald-50">
+                    Get Directions
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Existing Bookings */}
+            <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+                  <CalendarIcon className="w-5 h-5" />
+                  Your Bookings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {existingBookings.length > 0 ? (
+                  <div className="space-y-3 p-4">
+                    {existingBookings.slice(0, 3).map((booking, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-gray-800">
+                            {format(new Date(booking.bookingDate), 'MMM dd, yyyy')}
+                          </span>
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {format(parseISO(`2023-01-01T${booking.startTime}`), 'h:mm a')} -{' '}
+                          {format(parseISO(`2023-01-01T${booking.endTime}`), 'h:mm a')}
+                        </p>
+                        {booking.notes && (
+                          <p className="text-xs text-gray-500 mt-1 italic">{booking.notes}</p>
+                        )}
+                      </motion.div>
+                    ))}
+                    {existingBookings.length > 3 && (
+                      <Button variant="ghost" size="sm" className="w-full text-emerald-600">
+                        View All Bookings
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No bookings yet</p>
+                    <p className="text-sm text-gray-400">Book your first test drive!</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Confirmation Dialog */}
+        <AnimatePresence>
+          {showConfirmation && bookingDetails && (
+            <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+              <DialogContent className="sm:max-w-2xl rounded-3xl shadow-2xl bg-white">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <DialogHeader>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-emerald-100 rounded-2xl">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-2xl font-bold text-gray-800">
+                          Booking Confirmed!
+                        </DialogTitle>
+                        <DialogDescription className="text-gray-600">
+                          Your test drive is secured. Get ready for an amazing drive!
+                        </DialogDescription>
+                      </div>
+                    </div>
+                  </DialogHeader>
+
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-2">
+                        <span className="text-gray-500">Vehicle</span>
+                        <span className="font-semibold">{car.year} {car.make} {car.model}</span>
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-gray-500">Date & Time</span>
+                        <span className="font-semibold">{bookingDetails.date} • {bookingDetails.timeSlot}</span>
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-gray-500">Location</span>
+                        <span className="font-semibold">{dealerShip?.name}</span>
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <span className="text-gray-500">Notes</span>
+                        <span className="font-medium text-gray-700">{bookingDetails.notes || 'None'}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-emerald-50 p-4 rounded-2xl">
+                      <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5" />
+                        Before You Go
+                      </h4>
+                      <ul className="space-y-2 text-sm text-emerald-700">
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5">•</span>
+                          Arrive 15 minutes early with valid driver's license
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5">•</span>
+                          Wear comfortable shoes and clothing
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="mt-0.5">•</span>
+                          Contact us if you need to reschedule
+                        </li>
                       </ul>
                     </div>
                   </div>
-                )}
 
-                <div className="flex justify-end mt-4">
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <Button
-                          onClick={handleCloseConfirmation}
-                          className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-6 text-base font-semibold transition-transform duration-200 hover:scale-105"
-                          aria-label="Close confirmation and return to car details"
-                        >
-                          Got It!
-                        </Button>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                        Return to car details
-                        <Tooltip.Arrow className="fill-gray-900" />
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-                </div>
-              </motion.div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </AnimatePresence>
-    </motion.div>
+                  <DialogFooter className="gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleCloseConfirmation}
+                      className="flex-1"
+                    >
+                      Back to Car
+                    </Button>
+                    <Button
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={handleCloseConfirmation}
+                    >
+                      View My Bookings
+                    </Button>
+                  </DialogFooter>
+                </motion.div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   )
 }
 

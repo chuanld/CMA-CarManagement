@@ -1,41 +1,57 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card'
 import {
   BookCheck,
   CalendarIcon,
   CarIcon,
+  CheckCircle,
   CheckCircleIcon,
   ClockIcon,
-  Currency,
+  CurrencyIcon,
   FolderHeart,
+  Fuel,
+  Gauge,
   Heart,
-  MapPinIcon,
+  MapPin,
   MessageSquare,
+  Navigation,
   Share2,
-  XCircleIcon,
+  
+  SpaceIcon,
+  
+  Users,
+  XCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import * as Tooltip from '@radix-ui/react-tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Progress } from '@/components/ui/progress'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import useFetch from '@/app/hooks/use-fetch'
 import { ApiResponse } from '@/types/api'
-import { Car, SerializeCars} from '@/types/car'
+import { Car } from '@/types/car'
 import { toggleSavedCar } from '@/actions/car-listing'
 import { toast } from 'sonner'
-import { formatCurrency } from '@/lib/helper'
-import { format, formatDate } from 'date-fns'
+import { formatCurrency, formatCurrencyVND } from '@/lib/helper'
+import { format } from 'date-fns'
 import CardImageSwipe from './card-image-swipe'
 import EmiCalculator from './car-emi-calc'
 import { TestDriveBooking } from '@/types/user'
 
 interface CarDetailsProps {
-  car: SerializeCars
+  car: Car
 }
 
 const CarDetails = ({ car }: CarDetailsProps) => {
@@ -43,13 +59,16 @@ const CarDetails = ({ car }: CarDetailsProps) => {
   const { isSignedIn } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState<boolean>(car.whishlisted || false)
 
-  const existUserBookings: TestDriveBooking[] = car?.testDriverInfo?.userTestDrives || []
+  const existUserBookings: TestDriveBooking[] = car?.testDriveBookings || []
   const nextBooking: TestDriveBooking | null =
     existUserBookings.length > 0
       ? [...existUserBookings].sort(
           (a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
         )[0]
       : null
+
+   console.log(existUserBookings,'existUserBookings')
+   console.log(nextBooking,'nextbook')
 
   const { loading: savingCar, fetchData: fnToggleSavedCar, data: savedCarData, error: saveCarError } =
     useFetch<ApiResponse<any>>(toggleSavedCar)
@@ -78,7 +97,7 @@ const CarDetails = ({ car }: CarDetailsProps) => {
       navigator
         .share({
           title: `Check out this car: ${car.make} ${car.model}`,
-          text: `Check out this car: ${car.make} ${car.model}. Price: $${car.price.toLocaleString()}`,
+          text: `Check out this car: ${car.make} ${car.model}. Price: ${formatCurrencyVND(car.price.toLocaleString())}`,
           url: window.location.href,
         })
         .catch((error) => {
@@ -108,388 +127,428 @@ const CarDetails = ({ car }: CarDetailsProps) => {
     router.push(`/test-drive/${car.id}`)
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-teal-100 p-6 border-b border-gray-200">
-          <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-            <CarIcon className="w-8 h-8 text-blue-600" />
-            {car.make} {car.model} ({car.year})
-          </CardTitle>
-          <CardDescription className="text-gray-600 text-lg mt-1">
-            Explore the details of this stunning vehicle
-          </CardDescription>
-        </CardHeader>
+  const getMileageProgress = () => {
+    const maxMileage = 5000 // Assume max mileage for progress
+    const percentage = Math.min((car.mileage / maxMileage) * 100, 100)
+    return { percentage, color: percentage < 50 ? 'green' : percentage < 80 ? 'yellow' : 'red' }
+  }
 
-        <CardContent className="p-6 sm:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* Vehicle Information */}
-            <motion.div
-              className="space-y-6"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-            >
-              <div className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">Vehicle Information</h3>
+  const mileageInfo = getMileageProgress()
+ 
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="relative">
+            <div className="absolute -top-16 left-4 w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full opacity-10 blur-xl"></div>
+            <Card className="relative overflow-hidden bg-white/80 backdrop-blur-sm shadow-2xl border-0">
+              <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 p-8 text-white">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-white/20 rounded-xl">
+                        <CarIcon className="w-6 h-6" />
+                      </div>
+                      <Badge variant="secondary" className="bg-white/20 border-white/30">
+                        {car.featured ? 'Featured' : 'Premium'}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-4xl font-bold mb-2">
+                      {car.make} {car.model}
+                    </CardTitle>
+                    <CardDescription className="text-blue-100 text-lg">
+                      {car.year} • {car.mileage.toLocaleString()} miles • {car.transmission}
+                    </CardDescription>
+                  </div>
                   <motion.div
-                    initial={{ scale: 1 }}
-                    animate={{ scale: isWishlisted ? [1, 1.2, 1] : 1 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex gap-2"
                   >
-                    <FolderHeart
-                      size={36}
-                      className={isWishlisted ? 'text-yellow-500' : 'text-gray-400'}
-                    />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={isWishlisted ? "secondary" : "default"}
+                            size="icon"
+                            className={`rounded-full h-12 w-12 shadow-lg ${
+                              isWishlisted ? 'bg-yellow-400 hover:bg-yellow-500' : 'bg-white/20 hover:bg-white/30'
+                            }`}
+                            onClick={handleToggleSaved}
+                            disabled={savingCar}
+                          >
+                            <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current text-yellow-900' : 'text-white'}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isWishlisted ? 'Remove from favorites' : 'Add to favorites'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full h-12 w-12 bg-white/20 hover:bg-white/30 text-white shadow-lg"
+                            onClick={handleShareCar}
+                          >
+                            <Share2 className="w-5 h-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Share this car</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </motion.div>
                 </div>
-
-                <div className="space-y-3 text-gray-700">
-                  <p className="flex items-center gap-2">
-                    <strong>Price:</strong>
-                    <span className="text-green-600 font-semibold text-lg">
-                      {formatCurrency(car.price)}
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Mileage:</strong> {car.mileage.toLocaleString()} miles
-                  </p>
-                  <p>
-                    <strong>Color:</strong> {car.color}
-                  </p>
-                  <p>
-                    <strong>Fuel Type:</strong> {car.fuelType}
-                  </p>
-                  <p>
-                    <strong>Transmission:</strong> {car.transmission}
-                  </p>
-                  <p>
-                    <strong>Body Type:</strong> {car.bodyType}
-                  </p>
-                  {car.seats && (
-                    <p>
-                      <strong>Seats:</strong> {car.seats}
-                    </p>
-                  )}
-                  <p className="flex items-center gap-2">
-                    <strong>Status:</strong>
-                    <Badge
-                      variant={car.status === 'AVAILABLE' ? 'default' : 'destructive'}
-                      className={`capitalize text-sm ${
-                        car.status === 'AVAILABLE'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {car.status.toLowerCase()}
-                    </Badge>
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <strong>Featured:</strong>
-                    {car.featured ? (
-                      <CheckCircleIcon className="text-green-500 w-5 h-5" />
-                    ) : (
-                      <XCircleIcon className="text-red-500 w-5 h-5" />
-                    )}
-                  </p>
+                <Separator className="my-4 bg-white/20" />
+                <div className="flex items-center justify-between text-blue-100">
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold">{formatCurrencyVND(car.price)}</div>
+                      <div className="text-sm opacity-90">Starting Price</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="secondary" className="bg-green-500/20 border-green-500/30 text-green-100">
+                        {car.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm opacity-75">Available Now</div>
+                  </div>
                 </div>
+              </CardHeader>
+            </Card>
+          </div>
+        </motion.div>
 
-                <div className="flex gap-3 mt-5">
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <Button
-                          variant={isWishlisted ? 'outline' : 'default'}
-                          className={`flex items-center gap-2 rounded-lg transition-transform duration-200 hover:scale-105 ${
-                            isWishlisted
-                              ? 'border-gray-300 text-gray-800 hover:bg-color-cma hover:text-white'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
-                          disabled={savingCar}
-                          onClick={handleToggleSaved}
-                          aria-label={isWishlisted ? 'Remove from saved cars' : 'Save this car'}
-                        >
-                          <Heart
-                            className={`w-5 h-5 ${isWishlisted ? 'fill-current' : 'fill-transparent'}`}
-                          />
-                          {savingCar ? 'Processing...' : isWishlisted ? 'Remove from Saved' : 'Save Car'}
-                        </Button>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                        {isWishlisted ? 'Remove from saved cars' : 'Save this car'}
-                        <Tooltip.Arrow className="fill-gray-900" />
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-600 hover:bg-gray-100 rounded-full transition-transform duration-200 hover:scale-105"
-                          onClick={handleShareCar}
-                          aria-label="Share this car"
-                        >
-                          <Share2 className="w-5 h-5" />
-                        </Button>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                        Share this car
-                        <Tooltip.Arrow className="fill-gray-900" />
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-                </div>
-              </div>
-
-              <div className="text-lg text-gray-700">
-                <p>
-                  <strong>Description:</strong> {car.description || 'No description available.'}
-                </p>
-              </div>
-
-              <div className="text-sm text-gray-500 space-y-2">
-                <p className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4 text-gray-400" />
-                  <strong>Created At:</strong> {formatDate(new Date(car.createdAt), 'MMMM d, yyyy')}
-                </p>
-                <p className="flex items-center gap-2">
-                  <CalendarIcon className="w-4 h-4 text-gray-400" />
-                  <strong>Updated At:</strong> {formatDate(new Date(car.updatedAt), 'MMMM d, yyyy')}
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Image and Actions */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-            >
-              <CardImageSwipe car={car} />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Card className="hover:shadow-md transition-shadow duration-300 cursor-pointer">
-                      <CardContent className="p-5">
-                        <div className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-2">
-                          <Currency className="h-5 w-5 text-blue-600" />
-                          EMI Calculator
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 mb-8">
+          {/* Main Content */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="xl:col-span-3 space-y-8"
+          >
+            {/* Images & Quick Actions */}
+            <Card className="overflow-hidden shadow-xl border-0 bg-white">
+              <CardContent className="p-0">
+                <CardImageSwipe car={car} />
+                <div className="p-6 bg-gradient-to-t from-gray-50 to-transparent">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Card className="hover:shadow-md transition-all duration-300 cursor-pointer border-0 bg-white">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CurrencyIcon className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-gray-700">EMI Calculator</span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Est. ${Math.round(car.price / 60).toLocaleString()} /mo
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle>EMI Calculator</DialogTitle>
+                        </DialogHeader>
+                        <EmiCalculator price={Number(car.price)} />
+                      </DialogContent>
+                    </Dialog>
+                    
+                    <Card className="hover:shadow-md transition-all duration-300 cursor-pointer border-0 bg-white">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageSquare className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-medium text-gray-700">Contact Seller</span>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          Estimated Monthly Payment:{' '}
-                          <span className="font-bold text-gray-800">
-                            {formatCurrency(Number(car.price) / 60)}
-                          </span>{' '}
-                          for 60 months
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          *Based on $0 down payment and 4.5% interest rate
-                        </p>
+                        <div className="text-xs text-gray-500">Get personalized offer</div>
                       </CardContent>
                     </Card>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-bold text-gray-800">
-                        CMA Smart Calculator
-                      </DialogTitle>
-                    </DialogHeader>
-                    <EmiCalculator price={Number(car.price)} />
-                  </DialogContent>
-                </Dialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                <Card className="hover:shadow-md transition-shadow duration-300">
-                  <CardContent className="p-5">
-                    <div className="flex items-center gap-2 text-lg font-semibold text-gray-800 mb-2">
-                      <MessageSquare className="h-5 w-5 text-blue-600" />
-                      Contact Seller
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Have questions? Reach out to the seller directly.
-                    </p>
-                    <a href={`mailto:${car.testDriverInfo?.dealerShip?.email || '#'}`}>
-                      <Button
-                        variant="outline"
-                        className="w-full border-gray-300 text-gray-800 hover:bg-blue-600 hover:text-white rounded-lg transition-transform duration-200 hover:scale-105"
-                      >
-                        Contact via Email
-                      </Button>
-                    </a>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {car.status !== 'AVAILABLE' && (
-                <Alert variant="destructive" className="mt-6 rounded-lg">
-                  <AlertTitle className="flex items-center gap-2">
-                    <XCircleIcon className="h-5 w-5 text-red-600" />
-                    <span className="text-sm font-semibold">
-                      This car is currently {car.status.toLowerCase()}.
-                    </span>
-                  </AlertTitle>
-                  <AlertDescription>Please check back later for more information.</AlertDescription>
-                </Alert>
-              )}
-
-              {car.status === 'AVAILABLE' && (
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                      <Button
-                        className="mt-6 w-full py-6 text-lg bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center gap-2 transition-transform duration-200 hover:scale-105"
-                        onClick={handleBookTestDrive}
-                        aria-label="Book a test drive"
-                      >
-                        Book a Test Drive
-                        <BookCheck className="h-5 w-5" />
-                      </Button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                      Schedule a test drive for this car
-                      <Tooltip.Arrow className="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              )}
-
-              {nextBooking && (
-                <p className="text-sm text-yellow-600 italic mt-2 text-center">
-                  Reminder: Your nearest test drive is scheduled for{' '}
-                  {formatDate(new Date(nextBooking.bookingDate), 'EEEE, MMMM d, yyyy')}
-                </p>
-              )}
-            </motion.div>
-          </div>
-
-          {/* Test Drive and Dealership Information */}
-          {car.testDriverInfo && (
-            <motion.div
-              className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-            >
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-800">Test Drive Information</h2>
-                <Card className="bg-gray-50 rounded-xl p-6 shadow-sm">
+            {/* Key Specifications */}
+            <Card className="shadow-lg border-0 bg-white">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
+                  <Gauge className="w-5 h-5 text-blue-600" />
+                  Key Specifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Price & Mileage */}
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-500">Price</span>
+                      <span className="text-lg font-bold text-gray-900">{formatCurrency(car.price)}</span>
+                    </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">User Test Drives</h3>
-                      {existUserBookings.length > 0 ? (
-                        <ul className="list-disc ml-6 text-gray-700 space-y-2">
-                          {existUserBookings.map((testDrive, index) => (
-                            <li key={index}>
-                              <p>
-                                <strong>Email:</strong> {testDrive?.user?.email || 'N/A'}
-                              </p>
-                              <p>
-                                <strong>Booking Date:</strong>{' '}
-                                {testDrive.bookingDate
-                                  ? formatDate(new Date(testDrive.bookingDate), 'MMMM d, yyyy')
-                                  : 'N/A'}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-500">No test drives scheduled.</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-500">Mileage</span>
+                        <Badge variant="outline" className="text-xs">
+                          {car.mileage.toLocaleString()} miles
+                        </Badge>
+                      </div>
+                      <Progress 
+                        value={mileageInfo.percentage} 
+                        className="h-2"
+                        indicatorClassName={`bg-${mileageInfo.color}-500`}
+                      />
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Low</span>
+                        <span>High</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Fuel className="w-4 h-4" />
+                        <span className="font-medium">{car.fuelType}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Users className="w-4 h-4" />
+                        <span>{car.seats || 'N/A'} seats</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <SpaceIcon className="w-4 h-4" />
+                        <span>{car.transmission}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <div className="w-3 h-3 bg-gray-300 rounded-full" style={{backgroundColor: car.color === 'White' ? '#f5f5f5' : car.color?.toLowerCase()}}></div>
+                        <span>{car.color}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Description */}
+            <Card className="shadow-lg border-0 bg-white">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-gray-800">About This Vehicle</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 leading-relaxed">{car.description || 'Experience luxury and performance in this meticulously maintained vehicle. Perfect for both city driving and long road trips.'}</p>
+              </CardContent>
+            </Card>
+
+            {/* Test Drive Section */}
+            {car.status === 'AVAILABLE' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="shadow-xl border-0 bg-gradient-to-r from-green-50 to-emerald-50">
+                  <CardContent className="p-8">
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-sm mb-4">
+                        <BookCheck className="w-5 h-5 text-green-600" />
+                        <span className="font-semibold text-green-800">Ready for Test Drive</span>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="lg"
+                              className="w-full max-w-md mx-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl py-8 rounded-2xl text-lg font-bold transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={handleBookTestDrive}
+                              disabled={car.isBookedByOther || savingCar}
+                            >
+                              {car.isBookedByOther ? (
+                                <>
+                                  <XCircle className="w-5 h-5 mr-2" />
+                                  Currently Booked
+                                </>
+                              ) : (
+                                <>
+                                  <Navigation className="w-5 h-5 mr-2" />
+                                  Book Test Drive Now
+                                </>
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {car.isBookedByOther ? 'Booked by another customer' : 'Schedule your test drive'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      {nextBooking && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="mt-4 p-4 bg-white rounded-xl shadow-sm"
+                        >
+                          <p className="text-sm text-gray-600">
+                            <CalendarIcon className="w-4 h-4 inline mr-1" />
+                            Your next test drive: {format(new Date(nextBooking.bookingDate), 'EEEE, MMMM d, yyyy')}
+                          </p>
+                        </motion.div>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </motion.div>
 
-                    {car.testDriverInfo.dealerShip && (
-                      <div className="border-t pt-4">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                          Dealership Information
-                        </h3>
-                        <div className="space-y-2 text-gray-700">
-                          <p className="flex items-center gap-2">
-                            <MapPinIcon className="w-5 h-5 text-blue-600" />
-                            <strong>{car.testDriverInfo.dealerShip.name || 'N/A'}</strong>
-                          </p>
-                          <p className="ml-7">{car.testDriverInfo.dealerShip.address || 'N/A'}</p>
-                          <p className="ml-7">
-                            <strong>Phone:</strong> {car.testDriverInfo.dealerShip.phone || 'N/A'}
-                          </p>
-                          <p className="ml-7">
-                            <strong>Email:</strong> {car.testDriverInfo.dealerShip.email || 'N/A'}
-                          </p>
-                          <p className="ml-7">
-                            <strong>Website:</strong>{' '}
-                            <a
-                              href={car.testDriverInfo.dealerShip.website || '#'}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {car.testDriverInfo.dealerShip.website || 'N/A'}
-                            </a>
-                          </p>
-                          <div className="ml-7 mt-2">
-                            <p className="flex items-center gap-2 font-semibold text-gray-800">
-                              <ClockIcon className="w-5 h-5 text-blue-600" />
-                              Working Hours:
-                            </p>
-                            <ul className="list-disc ml-6 text-gray-600 text-sm">
-                              {car.testDriverInfo.dealerShip.workingHours?.map((wh, i) => (
-                                <li key={i}>
-                                  {wh.dayOfWeek}: {wh.isOpen ? `${wh.openTime} – ${wh.closeTime}` : 'Closed'}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-3">
-                            <p>
-                              <strong>Created At:</strong>{' '}
-                              {formatDate(
-                                new Date(car.testDriverInfo.dealerShip.createdAt),
-                                'MMMM d, yyyy'
-                              )}
-                            </p>
-                            <p>
-                              <strong>Updated At:</strong>{' '}
-                              {formatDate(
-                                new Date(car.testDriverInfo.dealerShip.updatedAt),
-                                'MMMM d, yyyy'
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+          {/* Sidebar */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-6"
+          >
+            {/* Dealer Info */}
+            {car.dealer && (
+              <Card className="shadow-lg border-0 bg-white sticky top-8">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                    Dealership
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-gray-900">{car.dealer.name}</h4>
+                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {car.dealer.address}
+                    </p>
                   </div>
-                </Card>
-              </div>
+                  <Separator />
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Phone</span>
+                      <a href={`tel:${car.dealer.phone}`} className="font-medium text-blue-600 hover:underline">
+                        {car.dealer.phone}
+                      </a>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Email</span>
+                      <a href={`mailto:${car.dealer.email}`} className="font-medium text-blue-600 hover:underline">
+                        {car.dealer.email}
+                      </a>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full mt-4">
+                    Get Directions
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Find Us</h2>
-                <Card className="p-4 rounded-xl shadow-sm">
-                  <iframe
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(
-                      car.testDriverInfo?.dealerShip?.address || 'San Francisco, CA'
-                    )}&output=embed`}
-                    width="100%"
-                    height="250"
-                    style={{ border: 0, borderRadius: '12px' }}
-                    allowFullScreen
-                    loading="lazy"
-                    title="Dealership Location"
-                  />
-                </Card>
-              </div>
-            </motion.div>
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
+            {/* Quick Stats */}
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-indigo-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-bold text-gray-800">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Body Type</span>
+                    <span className="font-medium">{car.bodyType}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Year</span>
+                    <span className="font-medium">{car.year}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Status</span>
+                    <Badge variant={car.status === 'AVAILABLE' ? "default" : "destructive"} className="text-xs">
+                      {car.status}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Map Embed */}
+            {car.dealer && (
+              <Card className="shadow-lg border-0 bg-white">
+                <CardContent className="p-0">
+                  <div className="h-64 rounded-lg overflow-hidden">
+                    <iframe
+                      src={`https://www.google.com/maps?q=${encodeURIComponent(car.dealer.address)}&output=embed`}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      className="rounded-lg"
+                      title="Dealership Location"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Additional Info Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="shadow-xl border-0 bg-white">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-gray-800">Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {car.testDriveBookings?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-3">Test Drive History</h3>
+                  <div className="grid gap-3">
+                    {existUserBookings.slice(0, 3).map((booking, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium">{booking.user?.name || 'Customer'}</p>
+                          <p className="text-xs text-gray-500">
+                            {format(new Date(booking.bookingDate), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {car.status !== 'AVAILABLE' && (
+                <Alert variant="destructive">
+                  <AlertTitle className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4" />
+                    Vehicle Status
+                  </AlertTitle>
+                  <AlertDescription>
+                    This vehicle is currently {car.status.toLowerCase()}. Please contact dealership for availability.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    </div>
   )
 }
 

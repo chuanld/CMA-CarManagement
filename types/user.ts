@@ -2,18 +2,24 @@ import { Car } from "./car";
 
 export type UserRole = 'USER' | 'ADMIN';
 
+// types/user.ts
+import { Dealer } from "./dealer";
+import { Review } from "./review";
+
 export interface User {
-    id: string;
-    clerkUserId: string;
-    email: string;
-    name?: string;
-    imageUrl?: string;
-    phone?: string;
-    createdAt: Date;
-    updatedAt: Date;
-    role: UserRole;
-    testDrives: TestDriveBooking[];
-    savedCars: UserSavedCar[];
+  id: string
+  clerkUserId: string
+  email: string
+  name?: string | null
+  imageUrl?: string | null
+  phone?: string | null
+  createdAt: Date
+  updatedAt: Date
+  role: UserRole
+  dealers: Dealer[]
+  reviews: Review[]
+  testDrives: TestDriveBooking[]
+  savedCars: UserSavedCar[]
 }
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';

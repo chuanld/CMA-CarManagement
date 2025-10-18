@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Car Marketplace",
+  title: "Car Marketplace System",
   description: "A platform to buy and sell cars",
 };
 
@@ -26,7 +26,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <ClerkProvider>
           <Header />
-          <main className="min-h-screen">{children}</main>
+          <div className="min-h-screen overflow-x-hidden">{children}</div>
           <Toaster richColors />
         </ClerkProvider>
       </body>
