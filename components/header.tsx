@@ -1,9 +1,9 @@
 'use client'
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, CarFront, Menu, X } from 'lucide-react'
+import { Heart, CarFront, Menu, X, LogIn } from 'lucide-react'
 import Image from 'next/image'
-import { UserButton, useUser } from '@clerk/nextjs'
+import { SignedIn, SignedOut, SignOutButton, UserButton, useUser } from '@clerk/nextjs'
 import { ThemeToggle } from './theme-switcher'
 import { useRouter } from 'next/navigation'
 
@@ -74,8 +74,8 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-3">
-          {/* Reservations */}
-          <motion.button
+          <SignedIn>
+            <motion.button
             whileHover={{ scale: 1.02 }}
             className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
             onClick={() => router.push('/reservations')}
@@ -110,7 +110,26 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
               }}
             />
           </motion.div>
+          </SignedIn>
+          {/* Reservations */}
+          
           <ThemeToggle /> {/* ✅ Dùng ThemeSwitcher */}
+          <SignedOut>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 bg-secondary hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
+            onClick={() => router.push('/sign-in')}
+          >
+            <LogIn size={18} className="group-hover:rotate-12 transition-transform" />
+            <span>Login</span>
+            <motion.div
+              className="absolute inset-0 rounded-full bg-accent/20 blur opacity-0 group-hover:opacity-100"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+            />
+          </motion.button>
+          </SignedOut>
         </div>
 
         {/* Mobile Menu Toggle */}
