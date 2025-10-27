@@ -1,21 +1,17 @@
-# 🚗 Car Marketplace — Version 2.0 (Stable)
+# 🚗 Car Marketplace — Version 3.0 (Next Release)
 
-**Branch:** `master`  
-**Status:** ✅ Stable Release  
-**Last Updated:** October 2025
+**Branch:** `release/3.0`  
+**Status:** 🚧 In Progress — Pre-Release  
+**Last Updated:** October 2025  
 
 ---
 
 ## 🧩 Overview
 
-Car Marketplace System là nền tảng web giúp người dùng:
-- Xem thông tin chi tiết xe từ các đại lý (dealer).
-- Đặt lịch **lái thử xe (test drive)** trong 1 giờ.
-- Đánh giá và lưu (save) xe yêu thích.
-- Quản lý dữ liệu đại lý, giờ làm việc và lịch hẹn.
-
-Phiên bản **v2.0** hiện tại đã hoàn thiện toàn bộ **chức năng cốt lõi** cho hệ thống giao dịch xe hơi:
-> CRUD đầy đủ cho xe, đại lý, người dùng, và tính năng booking lái thử.
+**Car Marketplace v3.0** expands the platform from a “view & test drive” system into a **multi-service automotive platform**, enabling:  
+- **Buy / Sell / Rent / Test Drive** within a single unified system.  
+- Flexible **Dealer Services** with reusable data models.  
+- A fully generalized **Booking System** for all transaction types.
 
 ---
 
@@ -23,79 +19,196 @@ Phiên bản **v2.0** hiện tại đã hoàn thiện toàn bộ **chức năng 
 
 | Layer | Technology |
 |-------|-------------|
-| **Frontend** | Next.js (app router) + TypeScript + shadcn/ui  |
-| **Backend** | NextJS (server action) + Prisma ORM |
+| **Frontend** | Next.js 15 (App Router) + TypeScript + shadcn/ui + Tailwind CSS v4 |
+| **Backend** | Next.js (Server Actions + Prisma ORM) |
 | **Database** | PostgreSQL (Supabase) |
-| **Deployment** | Vercel (branch: `deploy-lite`) |
+| **Deployment** | Vercel (`release/3.0` branch) |
 
 ---
 
-## 🧠 Core Features (v2.0)
+## 🧠 Core Features (v3.0)
 
 ### 👤 User
-- Đăng nhập qua **Clerk**.
-- Lưu xe yêu thích (Wishlist).
-- Đặt lịch lái thử.
+- Authentication & session via **Clerk**.  
+- Manage saved cars, bookings, and contracts (buy/rent).  
+- Quick service booking for **Buy / Rent / Test Drive**.
 
 ### 🏢 Dealer
-- Quản lý danh sách xe.
-- Quản lý giờ làm việc (`WorkingHour`).
-- Theo dõi đánh giá (Review) từ khách hàng.(chưa hoàn thiện)
+- Manage cars, working hours (`WorkingHour`), and service offerings.  
+- Handle multiple **Service Packages**.  
+- Review and approve user **Bookings**.
 
 ### 🚘 Car
-- CRUD xe với thông tin chi tiết: `make`, `model`, `year`, `fuelType`, `price`, `status`, ...
-- Upload hình ảnh (hỗ trợ AI phân tích cho admin).
-- Quản lý trạng thái: `AVAILABLE`, `RESERVED`, `SOLD`, `MAINTENANCE`, `PENDING`.
+- Enhanced CRUD operations with service integration.  
+- Classify cars by service type: **for sale**, **for rent**, **for test drive**.  
+- Attach multiple price/service configurations to one car.  
+- Status values include:  
+  `AVAILABLE`, `RESERVED`, `SOLD`, `MAINTENANCE`, `RENTED`, `PENDING`.
 
-### 🧾 Booking
-- Đặt lịch **test drive trong 1 giờ**.
-- Quản lý trạng thái lịch hẹn:
-  - `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`.
-
-### ⭐ Review
-- Chưa hoàn thiện
+### 💼 Service Modules
+| Module | Description |
+|---------|--------------|
+| **SaleInfo** | Sale details, price, and payment status. |
+| **RentInfo** | Rental details with hourly/daily/monthly pricing. |
+| **Purchase** | Transaction record for vehicle purchases. |
+| **Booking** | Unified model for all appointment types (test drive, rent, buy). |
 
 ---
 
-## 🧱 Prisma Schema Summary
+## 🧾 Prisma Schema Summary (v3.0)
 
-Các bảng chính trong version 2.0:
+New and updated tables:
 - `User`
 - `Dealer`
 - `Car`
 - `WorkingHour`
 - `Review`
-- `TestDriveBooking`
+- `Booking` *(replaces `TestDriveBooking`)*
+- `SaleInfo`
+- `RentInfo`
+- `Purchase`
 - `UserSavedCar`
 
-Cấu trúc quan hệ đã được thiết kế chuẩn với Prisma ORM.
+> All relationships have been restructured in a **Service-Oriented Architecture (SOA)** style for better scalability and modularity.
 
 ---
+
+## ⚙️ Datetime Handling (FE ⇄ BE)
+
+```
+FE: parse localString (display) -> fill input (string) => UTC DateTime => Send to BE
+BE: store UTC in DB => return ISOString => display as local time in FE
+```
+
+> System convention: **UTC stored**, **Local displayed**.  
+> Ensures synchronization between user timezone (VN) and backend (Vercel UTC).
+
+---
+
+
+## Project Struture 
+
+car-marketplace/
+├── app/                             # Next.js App Router entry point
+│   ├── (admin)/                     # Dealer & Admin dashboards
+│   │   ├── layout.tsx               # Admin layout wrapper
+│   │   ├── page.tsx                 # Admin landing
+│   │   ├── cars/                    # CRUD management for cars
+│   │   ├── dealers/                 # Manage dealer info
+│   │   ├── bookings/                # Manage test drives, sales, rentals
+│   │   └── analytics/               # Dashboard / Statistics
+│   │
+│   ├── (user)/                      # User-facing pages
+│   │   ├── layout.tsx               # User layout wrapper
+│   │   ├── page.tsx                 # Home page
+│   │   ├── cars/                    # Car listing & details
+│   │   ├── booking/                 # Test drive / rental booking
+│   │   ├── wishlist/                # Saved cars
+│   │   └── profile/                 # User info & booking history
+│   │
+│   ├── api/                         # Route handlers / Server Actions
+│   │   ├── car/
+│   │   ├── booking/
+│   │   ├── dealer/
+│   │   └── ...
+│   │
+│   ├── providers/                   # Context & global providers (theme, auth...)
+│   ├── globals.css                  # Global Tailwind theme
+│   ├── layout.tsx                   # Root layout (ClerkProvider, ThemeProvider, etc.)
+│   ├── page.tsx                     # Root landing page
+│   └── error.tsx                    # Global error boundary
+│
+├── actions/                         # Server-side logic via Next.js Server Actions
+│   ├── car.ts                       # CRUD for cars
+│   ├── booking.ts                   # Handle test drive / rent bookings
+│   ├── dealer.ts                    # Dealer CRUD & working hours
+│   ├── user.ts                      # User actions (wishlist, profile)
+│   ├── review.ts                    # Review & rating (v3.1 plan)
+│   └── utils.ts                     # Shared helpers for actions
+│
+├── components/                      # Reusable UI components
+│   ├── ui/                          # shadcn/ui-based primitives
+│   ├── layout/                      # Header, Footer, Sidebar
+│   ├── car-card.tsx                 # Car display component
+│   ├── booking-form.tsx             # Booking form component
+│   ├── dealer-card.tsx              # Dealer card component
+│   ├── badge-status.tsx             # Car status badges (Sale, Rent, etc.)
+│   └── ...
+│
+├── hooks/                           # Custom React hooks
+│   ├── use-fetch.ts                 # Handle client fetch state
+│   ├── use-toast.ts                 # Toast notifications
+│   ├── use-theme.ts                 # Light/Dark mode switch
+│   ├── use-auth.ts                  # Clerk user session
+│   └── ...
+│
+├── lib/                             # Utility & shared logic
+│   ├── prisma.ts                    # Prisma client singleton
+│   ├── utils.ts                     # Common helpers
+│   ├── constants.ts                 # Enums, app constants
+│   ├── data.ts                      # Static data (body types, fuel types, etc.)
+│   └── validation.ts                # Zod schemas for validation
+│
+├── prisma/
+│   ├── schema.prisma                # Database schema (v3.currently)
+│   ├── migrations/                  # Auto-generated migrations
+│
+├── public/                          # Static assets
+│
+├── types/                           # TypeScript types & interfaces
+│   ├── car.ts                       # Car model type
+│   ├── booking.ts                   # Booking type
+│   ├── dealer.ts                    # Dealer type
+│   ├── user.ts                      # User type
+│   └── index.ts
+│
+├── middleware.ts                    # Authentication & route middleware (Clerk)
+├── config/                          # Configuration files (theme, env)
+│   ├── theme.ts
+│   └── site.ts
+│
+├── .env.example                     # Environment variable template
+├── next.config.mjs                  # Next.js configuration
+├── tailwind.config.ts               # Tailwind v4 config
+├── tsconfig.json                    # TypeScript configuration
+├── package.json
+└── README.md
+
+
+---
+
 
 ## 🚀 Deployment Notes
 
-- **Production branch:** `deploy-lite`
-- **Main stable branch:** `master`
-- **Next release branch:** `release/3.0` (đang refactor hỗ trợ dịch vụ hóa “bán / thuê xe”)
-
-> Mọi bản cập nhật cho hệ thống deploy hiện tại đều merge từ `master → deploy-lite`.
+- **Stable branch:** `master`
+- **Production deploy:** `master`
+- **Development branch:** `release/3.0`
+- Merge flow:
+  ```bash
+  release/3.0 → master 
+  ```
+- **v1 deploy:** `deploy-lite`
+- **v2:** `release2.0`
+- **v3 (currently):** `release/3.0 -> master`
 
 ---
 
-## 🧭 Next Steps (v3.0 Plan)
+## 🧭 Next Milestone (v4.0 Plan)
+- Complete **Review & Dealer Rating** module.
+- Log & notification realtime for dealers  
+- Build analytics dashboard for dealer performance.
+- Integrate **Payment Gateway** (Stripe / ZaloPay).  
+- Add **Multi-language (i18n)** support.  
 
-Phiên bản **3.0** sẽ mở rộng mô hình hiện tại với:
-- Dịch vụ **bán, lái thử, cho thuê** trong cùng một hệ thống.
-- Thêm các bảng:
-  - `SaleInfo`, `RentInfo`, `Purchase`, `Booking` (tổng quát hóa).
-- Cấu trúc dữ liệu mới linh hoạt hơn cho pricing, trạng thái, và thời gian thuê.
-
-Nhánh phát triển cho 3.0:  
-```bash
-git checkout -b release/3.0
+---
 
 
+## 🗺️ Schema Diagram (Simplified)
 
-//Process handle datetim
-FE: parse localaString dislay -> fill input (string) => UTC DateTime => Send BE
-BE: Luu UTC db => get time => ISOString => Send FE
+```plaintext
+User ───< Booking >─── Car
+Dealer ───< Car >─── SaleInfo / RentInfo
+Booking ───< Purchase
+```
+
+> Designed for scalability and flexibility in multi-service car commerce systems.
