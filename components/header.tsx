@@ -60,7 +60,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
             }}
           />
           <Image
-            src={`${isAdminPage ? '/chuan_DP.png' : '/chuan_cmas.png'}`}
+            src={`${isAdminPage ? '/chuan_DP.png' : '/chuan_CMAS.png'}`}
             alt="Car Marketplace AI System"
             width={250}
             height={50}
