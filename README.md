@@ -89,88 +89,89 @@ BE: store UTC in DB => return ISOString => display as local time in FE
 ## Project Struture 
 
 car-marketplace/
-├── app/                             # Next.js App Router entry point
-│   ├── (admin)/                     # Dealer & Admin dashboards
-│   │   ├── layout.tsx               # Admin layout wrapper
-│   │   ├── page.tsx                 # Admin landing
-│   │   ├── cars/                    # CRUD management for cars
-│   │   ├── dealers/                 # Manage dealer info
-│   │   ├── bookings/                # Manage test drives, sales, rentals
-│   │   └── analytics/               # Dashboard / Statistics
-│   │
-│   ├── (user)/                      # User-facing pages
-│   │   ├── layout.tsx               # User layout wrapper
-│   │   ├── page.tsx                 # Home page
-│   │   ├── cars/                    # Car listing & details
-│   │   ├── booking/                 # Test drive / rental booking
-│   │   ├── wishlist/                # Saved cars
-│   │   └── profile/                 # User info & booking history
-│   │
-│   ├── api/                         # Route handlers / Server Actions
-│   │   ├── car/
-│   │   ├── booking/
-│   │   ├── dealer/
-│   │   └── ...
-│   │
-│   ├── providers/                   # Context & global providers (theme, auth...)
-│   ├── globals.css                  # Global Tailwind theme
-│   ├── layout.tsx                   # Root layout (ClerkProvider, ThemeProvider, etc.)
-│   ├── page.tsx                     # Root landing page
-│   └── error.tsx                    # Global error boundary
+├── app/ # Next.js App Router entry point
+│ ├── (admin)/ # Dealer & Admin dashboards
+│ │ ├── layout.tsx # Admin layout wrapper
+│ │ ├── page.tsx # Admin landing
+│ │ ├── cars/ # CRUD management for cars
+│ │ ├── dealers/ # Manage dealer info
+│ │ ├── bookings/ # Manage test drives, sales, rentals
+│ │ └── analytics/ # Dashboard / Statistics
+│ │
+│ ├── (user)/ # User-facing pages
+│ │ ├── layout.tsx # User layout wrapper
+│ │ ├── page.tsx # Home page
+│ │ ├── cars/ # Car listing & details
+│ │ ├── booking/ # Test drive / rental booking
+│ │ ├── wishlist/ # Saved cars
+│ │ └── profile/ # User info & booking history
+│ │
+│ ├── api/ # Route handlers / Server Actions
+│ │ ├── car/
+│ │ ├── booking/
+│ │ ├── dealer/
+│ │ └── ...
+│ │
+│ ├── providers/ # Context & global providers (theme, auth...)
+│ ├── globals.css # Global Tailwind theme
+│ ├── layout.tsx # Root layout (ClerkProvider, ThemeProvider, etc.)
+│ ├── page.tsx # Root landing page
+│ └── error.tsx # Global error boundary
 │
-├── actions/                         # Server-side logic via Next.js Server Actions
-│   ├── car.ts                       # CRUD for cars
-│   ├── booking.ts                   # Handle test drive / rent bookings
-│   ├── dealer.ts                    # Dealer CRUD & working hours
-│   ├── user.ts                      # User actions (wishlist, profile)
-│   ├── review.ts                    # Review & rating (v3.1 plan)
-│   └── utils.ts                     # Shared helpers for actions
+├── actions/ # Server-side logic via Next.js Server Actions
+│ ├── car.ts # CRUD for cars
+│ ├── booking.ts # Handle test drive / rent bookings
+│ ├── dealer.ts # Dealer CRUD & working hours
+│ ├── user.ts # User actions (wishlist, profile)
+│ ├── review.ts # Review & rating (v3.1 plan)
+│ └── utils.ts # Shared helpers for actions
 │
-├── components/                      # Reusable UI components
-│   ├── ui/                          # shadcn/ui-based primitives
-│   ├── layout/                      # Header, Footer, Sidebar
-│   ├── car-card.tsx                 # Car display component
-│   ├── booking-form.tsx             # Booking form component
-│   ├── dealer-card.tsx              # Dealer card component
-│   ├── badge-status.tsx             # Car status badges (Sale, Rent, etc.)
-│   └── ...
+├── components/ # Reusable UI components
+│ ├── ui/ # shadcn/ui-based primitives
+│ ├── layout/ # Header, Footer, Sidebar
+│ ├── car-card.tsx # Car display component
+│ ├── booking-form.tsx # Booking form component
+│ ├── dealer-card.tsx # Dealer card component
+│ ├── badge-status.tsx # Car status badges (Sale, Rent, etc.)
+│ └── ...
 │
-├── hooks/                           # Custom React hooks
-│   ├── use-fetch.ts                 # Handle client fetch state
-│   ├── use-toast.ts                 # Toast notifications
-│   ├── use-theme.ts                 # Light/Dark mode switch
-│   ├── use-auth.ts                  # Clerk user session
-│   └── ...
+├── hooks/ # Custom React hooks
+│ ├── use-fetch.ts # Handle client fetch state
+│ ├── use-toast.ts # Toast notifications
+│ ├── use-theme.ts # Light/Dark mode switch
+│ ├── use-auth.ts # Clerk user session
+│ └── ...
 │
-├── lib/                             # Utility & shared logic
-│   ├── prisma.ts                    # Prisma client singleton
-│   ├── utils.ts                     # Common helpers
-│   ├── constants.ts                 # Enums, app constants
-│   ├── data.ts                      # Static data (body types, fuel types, etc.)
-│   └── validation.ts                # Zod schemas for validation
+├── lib/ # Utility & shared logic
+│ ├── prisma.ts # Prisma client singleton
+│ ├── utils.ts # Common helpers
+│ ├── constants.ts # Enums, app constants
+│ ├── data.ts # Static data (body types, fuel types, etc.)
+│ └── validation.ts # Zod schemas for validation
 │
 ├── prisma/
-│   ├── schema.prisma                # Database schema (v3.currently)
-│   ├── migrations/                  # Auto-generated migrations
+│ ├── schema.prisma # Database schema (v3.currently)
+│ ├── migrations/ # Auto-generated migrations
 │
-├── public/                          # Static assets
+├── public/ # Static assets
 │
-├── types/                           # TypeScript types & interfaces
-│   ├── car.ts                       # Car model type
-│   ├── booking.ts                   # Booking type
-│   ├── dealer.ts                    # Dealer type
-│   ├── user.ts                      # User type
-│   └── index.ts
+├── types/ # TypeScript types & interfaces
+│ ├── car.ts
+│ ├── booking.ts
+│ ├── dealer.ts
+│ ├── user.ts
+│ └── index.ts
 │
-├── middleware.ts                    # Authentication & route middleware (Clerk)
-├── config/                          # Configuration files (theme, env)
-│   ├── theme.ts
-│   └── site.ts
+├── middleware.ts # Authentication & route middleware (Clerk)
 │
-├── .env.example                     # Environment variable template
-├── next.config.mjs                  # Next.js configuration
-├── tailwind.config.ts               # Tailwind v4 config
-├── tsconfig.json                    # TypeScript configuration
+├── config/ # Configuration files (theme, env)
+│ ├── theme.ts
+│ └── site.ts
+│
+├── .env.example # Environment variable template
+├── next.config.mjs # Next.js configuration
+├── tailwind.config.ts # Tailwind v4 config
+├── tsconfig.json # TypeScript configuration
 ├── package.json
 └── README.md
 
