@@ -71,7 +71,6 @@ export async function createRental({
       include: { car: true, dealer: true },
     });
 
-    // Optionally mark car as unavailable in rentInfo
     await db.rentInfo.update({
       where: { carId },
       data: { available: false },

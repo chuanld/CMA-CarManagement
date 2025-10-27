@@ -142,11 +142,11 @@ import { addDays } from "date-fns";
 const bookingSchema = z.object({
   carId: z.string().uuid(),
   bookingType: z.enum(["RENTAL", "TEST_DRIVE"]),
-  bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // "2025-10-21"
+  bookingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), 
   startTime: z.string().datetime(), // ISO full
   endTime: z.string().datetime(), // ISO full
-  rentalType: z.enum(["hourly", "daily"]).optional(), // Chỉ cho RENTAL
-  totalPrice: z.number().optional(), // FE đã tính sẵn
+  rentalType: z.enum(["hourly", "daily"]).optional(), 
+  totalPrice: z.number().optional(), 
   notes: z.string().optional(),
 });
 
@@ -204,7 +204,6 @@ export async function createBooking(payload: z.infer<typeof bookingSchema>) {
       );
     }
 
-    // ✅ CHECK OVERLAP
     const overlap = await db.booking.findFirst({
       where: {
         carId: validated.carId,
@@ -247,7 +246,6 @@ export async function createBooking(payload: z.infer<typeof bookingSchema>) {
       include: { car: true, dealer: true, user: true },
     });
 
-    // ✅ REVALIDATE
     revalidatePath(`/cars/${validated.carId}`);
     revalidatePath("/bookings");
     if (validated.bookingType === "RENTAL") revalidatePath("/rentals");
@@ -287,7 +285,6 @@ export async function getUserBookings({
   }
 }) {
   try {
-    // 🔐 Auth check
     const { userId } = await auth()
     if (!userId) throw new Error("Unauthorized")
 
@@ -297,14 +294,12 @@ export async function getUserBookings({
     const { page = 1, limit = 10 } = pagination
     const skip = (page - 1) * limit
 
-    // 🧠 Xây dựng điều kiện where động
     const where: any = {
       userId: user.id,
       ...(filter.bookingType && { bookingType: filter.bookingType }),
       ...(filter.status?.length && { status: { in: filter.status } }),
     }
 
-    // 🔍 Nếu có search, lọc theo car name, model, dealer name, ...
     if (search) {
       where.OR = [
         { car: { name: { contains: search, mode: "insensitive" } } },
@@ -313,7 +308,6 @@ export async function getUserBookings({
       ]
     }
 
-    // ⚙️ Query song song
     const [bookings, total] = await Promise.all([
       db.booking.findMany({
         where,
@@ -325,7 +319,6 @@ export async function getUserBookings({
       db.booking.count({ where }),
     ])
 
-    // 🔄 Serialize kết quả
     const data = bookings.map((b) => (serializeBooking(b)))
 
     return {
@@ -369,7 +362,6 @@ export async function cancelBooking(bookingId: string) {
       throw new Error(`Cannot cancel booking with status: ${booking.status}`);
     }
 
-    // Update status with timestamp
     await db.booking.update({
       where: { id: bookingId },
       data: {
@@ -379,7 +371,6 @@ export async function cancelBooking(bookingId: string) {
       },
     });
 
-    // Revalidate paths
     if (booking.bookingType === "TEST_DRIVE") {
       revalidatePath(`/test-drive/${booking.carId}`);
       revalidatePath(`/cars/${booking.carId}`);
@@ -489,11 +480,6 @@ export async function getBookedSlots({
     });
 
     const serialBookings = bookings.map((b) =>
-      // id: b.id,
-      // startTime: b.startTime.toISOString(),
-      // endTime: b.endTime.toISOString(),
-      // bookingType: b.bookingType,
-      // rentalType: b.rentalType
       serializeBooking(b)
     );
     console.log(serialBookings, "asds");

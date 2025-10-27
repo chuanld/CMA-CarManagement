@@ -76,7 +76,6 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
     const isRent = businessType === 'RENT' || businessType === 'BOTH'
 
     const dealerShip: DealershipInfo | any = dealer
-    // const logBookings: TestDriveBooking[] = historyBookings || []
 
 
     //temporary upcoming bookings
@@ -94,8 +93,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                 type: bookingResult.data.bookingType,
                 rentType: bookingResult.data.rentalType,
                 date: format(new Date(bookingResult.data.bookingDate), 'EEEE, MMMM d, yyyy'),
-                // timeSlot: `${format(parseISO(bookingResult.data.startTime), 'dd/mm  h:mm a')} - ${format(parseISO(bookingResult.data.endTime), 'h:mm a')}`,
-                timeSlot: `${format(new Date(bookingResult.data.bookingDate), 'dd/MM/yyyy HH:mm')} - ${format(new Date(bookingResult.data.endTime), 'dd/MM/yyyy HH:mm')}`,
+                timeSlot: `${format(new Date(bookingResult.data.bookingDate), 'dd/MM/yyyy')} | ${displayDateTime(bookingResult.data.startTime)} - ${displayDateTime(bookingResult.data.endTime)}`,
                 notes: bookingResult.data.notes,
             })
                 setShowConfirmation(true)
@@ -105,8 +103,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
             setBookingDetails({ 
                 type: bookingResult.data.bookingType,
                 date: format(new Date(bookingResult.data.bookingDate), 'EEEE, MMMM d, yyyy'),
-                // timeSlot: `${format(parseISO(bookingResult.data.startTime), 'dd/mm  h:mm a')} - ${format(parseISO(bookingResult.data.endTime), 'h:mm a')}`,
-                timeSlot: `${format(new Date(bookingResult.data.bookingDate), 'dd/MM/yyyy HH:mm')} - ${format(new Date(bookingResult.data.endTime), 'HH:mm')}`,
+                timeSlot: `${format(new Date(bookingResult.data.bookingDate), 'dd/MM/yyyy')} | ${displayDateTime(bookingResult.data.startTime)} - ${displayDateTime(bookingResult.data.endTime)}`,
                 notes: bookingResult.data.notes,
             })
             setShowConfirmation(true)
@@ -136,7 +133,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                 carId: car.id as string,
             }
             console.log(newData,'data rent')
-            // await fnBookTestDrive(newData)
+            await fnBookTestDrive(newData)
         }
         else if (type === 'TEST_DRIVE') {
             const newData = {
@@ -144,7 +141,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                 carId: car.id as string,
             }
             console.log(newData,type)
-            // await fnBookTestDrive(newData)
+            await fnBookTestDrive(newData)
         }
 
     }

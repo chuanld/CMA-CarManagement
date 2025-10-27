@@ -19,8 +19,6 @@ const BookingPage = async ({params}:{params: {id: string}}) => {
     const testDriveInfo = await getTestDriveInfo(id);
 
 const businessType = result?.data?.carType || 'BOTH'
-//   const isSale = businessType === 'SALE' || businessType === 'BOTH'
-//   const isRent = businessType === 'RENT' || businessType === 'BOTH'
   const upcomingBookings = getUpcomingBookings(result.data, businessType);
 
 

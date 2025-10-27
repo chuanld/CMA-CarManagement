@@ -39,15 +39,6 @@ const BreadcrumbComponent = ({
     const segments = pathname.split("/").filter(Boolean);
     const items: BreadcrumbItemType[] = [
       { label: "Home", href: "/", isCurrent: segments.length === 0 },
-      // { label: `Booking ${id}`, isCurrent: true },
-      // //cars
-      // { label: "Cars", href: "/cars", isCurrent: false },
-      // { label: `Details`, isCurrent: true },
-      // //reservations
-      // { label: "Reservations", href: "/reservations", isCurrent: false },
-      // { label: `Your Reservations`, isCurrent: true },
-      // //saved-car
-      // { label: "Saved Cars", href: "/saved-cars", isCurrent: false },
 
     ];
 

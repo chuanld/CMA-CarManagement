@@ -44,7 +44,7 @@ type TestDriveFormProps = {
     upcomingBookings: Booking[] | any[],
     onSubmitForm?: (data: any, mode: string) => any,
 }
-export function TestDriveForm({ dealerShip, userTestDrives, bookingInProcess, upcomingBookings,onSubmitForm }: TestDriveFormProps) {
+export function TestDriveForm({ dealerShip, userTestDrives, bookingInProcess, upcomingBookings, onSubmitForm }: TestDriveFormProps) {
 
 
     const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([])
@@ -88,7 +88,7 @@ export function TestDriveForm({ dealerShip, userTestDrives, bookingInProcess, up
 
 
     useEffect(() => {
-        console.log(selectedDate,'sss')
+        console.log(selectedDate, 'sss')
         if (!selectedDate || !dealerShip?.workingHours) {
             setAvailableTimeSlots([]);
             setValue('timeSlot', '');
@@ -137,7 +137,7 @@ export function TestDriveForm({ dealerShip, userTestDrives, bookingInProcess, up
                 available: !isBooked,
             });
         }
-        
+
 
         setAvailableTimeSlots(slots);
         setValue('timeSlot', '');
@@ -152,27 +152,22 @@ export function TestDriveForm({ dealerShip, userTestDrives, bookingInProcess, up
             return
         }
 
-        const bookingDateLocal = new Date(data.date);
-        bookingDateLocal.setHours(12, 0, 0, 0);
+        const bookingDate = new Date(data.date).toLocaleDateString('sv-SE');
+
+        const startTime = new Date(`${bookingDate}T${selectedSlot.startTime}:00`).toISOString();
+        const endTime = new Date(`${bookingDate}T${selectedSlot.endTime}:00`).toISOString();
 
         const payload: any = {
-            
-            bookingDate: bookingDateLocal.toISOString(),
-            startTime: selectedSlot.startTime,
-            endTime: selectedSlot.endTime,
+            bookingType: 'TEST_DRIVE',
+            bookingDate: bookingDate,
+            startTime: startTime,
+            endTime: endTime,
             notes: data.notes || '',
         }
         const mode = "TEST_DRIVE"
 
         onSubmitForm && onSubmitForm(payload, mode)
-        // await fnBookTestDrive({
-        //     carId: car.id,
-        //     // bookingDate: format(data.date, 'yyyy-MM-dd'),
-        //     bookingDate: bookingDateLocal.toISOString(),
-        //     startTime: selectedSlot.startTime,
-        //     endTime: selectedSlot.endTime,
-        //     notes: data.notes || '',
-        // })
+
     }
 
     const getAvailabilityProgress = () => {

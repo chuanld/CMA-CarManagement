@@ -25,7 +25,6 @@ import { displayDateTime } from '../../bookings/helper/handle-bookings';
 import { DateRange } from 'react-day-picker';
 import { Label } from '@/components/ui/label';
 
-// ✅ ZOD SCHEMA
 const filterSchema = z.object({
     status: z.array(z.enum(['ALL', 'PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED'])).default(['ALL']),
     rentalType: z.array(z.enum(['ALL', 'HOURLY', 'DAILY'])).default(['ALL']),
@@ -75,7 +74,6 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // ✅ RHF + WATCH - CLEAN!
     const form = useForm<FilterValues>({
         resolver: zodResolver(filterSchema) as any,
         defaultValues: {
@@ -98,9 +96,8 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         formState: { errors } 
     } = form;
 
-    const watchedValues = watch(); // ✅ REAL-TIME WATCH!
+    const watchedValues = watch(); 
 
-    // ✅ INIT FROM URL
     useEffect(() => {
         const params = Object.fromEntries(searchParams.entries());
         
@@ -120,11 +117,9 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         onChangeForm(initialValues);
     }, [searchParams]);
 
-    // ✅ AUTO UPDATE URL ON WATCH CHANGE
     useEffect(() => {
         const params = new URLSearchParams();
         
-        // Add filter params
         Object.entries(watchedValues).forEach(([key, value]) => {
             if (Array.isArray(value) && value.length > 0) {
                 if (value.length === 1 && value[0] === 'ALL') return;
@@ -143,7 +138,6 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         onChangeForm(watchedValues);
     }, [ router]);
 
-    // ✅ TOGGLE HANDLERS
     const toggleArray = (field: keyof FilterValues, value: any) => {
         const current: any = watch(field) || [];
         const newArray = current.includes(value)
@@ -158,7 +152,6 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
     const handleRentalTypeChange = (type: typeof rentalTypeOptions[number]['value']) => 
         toggleArray('rentalType', type);
 
-    // ✅ SORT HANDLER
     const handleSortChange = (value: string) => {
         const option = sortOptions.find(s => `${s.value}-${s.order}` === value);
         if (option) {
@@ -167,13 +160,11 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         }
     };
 
-    // ✅ DATE HANDLER
     const handleDateRange = (range?: DateRange) => {
         setValue('dateFrom', range?.from || undefined);
         setValue('dateTo', range?.to || undefined);
     };
 
-    // ✅ ACTIVE FILTERS COUNT
     const activeFilters = [
         ...watchedValues.status.filter(s => s !== 'ALL'),
         ...watchedValues.rentalType.filter(t => t !== 'ALL'),
@@ -184,7 +175,6 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         watchedValues.priceMax < 10000000 ? 1 : 0,
     ].filter(Boolean).length;
 
-    // ✅ CLEAR ALL
     const handleClear = () => {
         reset({
             status: ['ALL'],
@@ -199,7 +189,6 @@ export function ReservationFilters({ onChangeForm }: ReservationFiltersProps) {
         });
     };
 
-    // ✅ GET ERROR
     const getError = (field: keyof FilterValues) => errors[field]?.message;
 
     return (

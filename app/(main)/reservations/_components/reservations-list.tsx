@@ -24,7 +24,6 @@ import { Booking } from "@/types/booking";
 import { ApiResponse } from "@/types/api";
 import { ReservationFilters } from "./reservations-filter";
 
-// ✅ RENTAL-SPECIFIC TYPE
 type RentalBooking = {
   id: string;
   carId: string;
@@ -62,7 +61,6 @@ type RentalBooking = {
 
 type BadgeStatuses = "secondary" | "default" | "outline" | "destructive";
 
-// ✅ STATUS BADGE
 const StatusBadge = ({ status }: { status: BadgeStatuses }) => {
   const statusConfig = {
     PENDING: { variant: "secondary", icon: Clock, label: "Pending", color: "bg-yellow-900/20 text-yellow-300 border border-yellow-700/30" },
@@ -83,7 +81,6 @@ const StatusBadge = ({ status }: { status: BadgeStatuses }) => {
   );
 };
 
-// ✅ RENTAL TIMELINE
 const RentalTimeline = ({ booking }: { booking: Booking }) => {
   const start = new Date(booking.startTime);
   const end = new Date(booking.endTime);
@@ -122,7 +119,6 @@ const RentalTimeline = ({ booking }: { booking: Booking }) => {
   );
 };
 
-// ✅ CAR GALLERY
 const CarGallery = ({ images, make, model }: { images: string[], make: string, model: string }) => (
   <div className="space-y-2">
     {images?.length > 0 ? (
@@ -145,7 +141,6 @@ const CarGallery = ({ images, make, model }: { images: string[], make: string, m
   </div>
 );
 
-// ✅ DEALER INFO
 const DealerInfo = ({ dealer }: { dealer: Booking['dealer'] }) => (
   <div className="space-y-2 text-sm">
     <div className="flex items-center gap-2">
@@ -163,7 +158,6 @@ const DealerInfo = ({ dealer }: { dealer: Booking['dealer'] }) => (
   </div>
 );
 
-// ✅ PRICE SUMMARY
 const PriceSummary = ({ totalPrice, rentalType }: { totalPrice: number, rentalType: string }) => (
   <div className="bg-linear-to-l from-accent to-primary p-3 rounded-xl border border-accent/30 backdrop-blur-sm text-primary-foreground">
     <div className="flex justify-between items-center">
@@ -275,8 +269,7 @@ export function ReservationsList() {
         params.set('limit', String(limit))
         Object.entries(cleanFilters).forEach(([k, v]) => params.set(k, v))
 
-        // Cập nhật URL
-        // router.replace(`?${params.toString()}`, { scroll: false })
+ 
     }
 
   const upcomingBookings = reservations?.data?.filter((booking: Booking) =>

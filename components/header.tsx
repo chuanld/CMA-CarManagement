@@ -150,7 +150,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-background/95 border-t border-border overflow-hidden" // ✅ THAY ĐỔI
+            className="md:hidden bg-background/95 border-t border-border overflow-hidden" 
           >
             <div className="px-4 py-4 space-y-3">
               <motion.button

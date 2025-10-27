@@ -44,7 +44,6 @@ export async function getCarFilters() {
       orderBy: { transmission: "asc" },
     });
 
-    // ✅ Vì price nằm trong bảng SaleInfo
     const priceRanges = await db.saleInfo.aggregate({
       where: { status: "AVAILABLE" },
       _min: { price: true },
@@ -109,7 +108,6 @@ export async function getCars({
     if (transmission)
       where.transmission = { equals: transmission, mode: "insensitive" };
 
-    // Giá nằm trong bảng SaleInfo
     const priceFilter: any = {
       gte: minPrice || 0,
       lte: maxPrice || 1000000000,

@@ -52,7 +52,6 @@ const AddCarForm = () => {
       const year = parseInt(val);
       return !isNaN(year) && year >= 1900 && year <= new Date().getFullYear() + 1;
     }, "Valid year required"),
-    // price: z.string().min(1, "Price is required"), refactor business logic later
     mileage: z.string().min(1, "Mileage is required"),
     color: z.string().min(1, "Color is required"),
     fuelType: z.string().min(1, "Fuel type is required"),
@@ -136,7 +135,6 @@ const AddCarForm = () => {
   }
 
   const onMultiImagesDrop = useCallback((acceptedFiles: File[]) => {
-    // lọc file hợp lệ
     const validFiles = acceptedFiles.filter((file) => {
       if (file.size > 5 * 1024 * 1024) {
         toast.error(`${file.name} exceeds the 5MB size limit.`);
@@ -157,7 +155,6 @@ const AddCarForm = () => {
         }
      
         if (newImages.length === validFiles.length) {
-          // const mappedFiles = validFiles.map((file) => ({ file, preview: URL.createObjectURL(file) }));
           setUploadedImages((prev) => [...prev, ...newImages]);
           toast.success(`Successfully uploaded ${newImages.length} images!`);
         }

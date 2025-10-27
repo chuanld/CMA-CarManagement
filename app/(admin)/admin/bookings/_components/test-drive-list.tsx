@@ -51,9 +51,7 @@ import { TestDriveBooking } from "@/types/user";
 import { Booking } from "@/types/booking";
 import { useEffect, useMemo, useState } from "react";
 
-// ---------------------------------------------------------------------
-//  Helpers
-// ---------------------------------------------------------------------
+
 const statusColors: Record<string, string> = {
   PENDING: "bg-secondary text-secondary-foreground",
   CONFIRMED: "bg-success text-success-foreground",
@@ -70,15 +68,10 @@ const statusIcons: Record<string, React.ReactNode> = {
   NO_SHOW: <AlertCircle className="w-4 h-4" />,
 };
 
-// ---------------------------------------------------------------------
-//  Main Component
-// ---------------------------------------------------------------------
 const TestDriveList = () => {
-  // ---------- Filters ----------
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // ---------- Data ----------
   const {
     loading: loadingList,
     fetchData: fetchList,
@@ -100,7 +93,6 @@ const TestDriveList = () => {
     error: cancelError,
   } = useFetch<ApiResponse<any>>(cancelBooking);
 
-  // ---------- Debounced fetch ----------
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchList({ searchTerm, status: statusFilter === "all" ? undefined : statusFilter });
@@ -108,7 +100,6 @@ const TestDriveList = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter]);
 
-  // ---------- Toast feedback ----------
   useEffect(() => {
     if (updateResult?.success) toast.success("Status updated");
     if (cancelResult?.success) toast.success("Booking cancelled");
@@ -120,7 +111,6 @@ const TestDriveList = () => {
     if (cancelError) toast.error("Failed to cancel booking");
   }, [listError, updateError, cancelError]);
 
-  // ---------- Handlers ----------
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     await updateStatus({ bookingId, newStatus });
   };
@@ -134,7 +124,6 @@ const TestDriveList = () => {
     setStatusFilter("all");
   };
 
-  // ---------- Computed ----------
   const bookings = useMemo(() => listResult?.data ?? [], [listResult]);
   const activeFilters = useMemo(() => {
     const f: string[] = [];
@@ -143,7 +132,6 @@ const TestDriveList = () => {
     return f;
   }, [searchTerm, statusFilter]);
 
-  // -----------------------------------------------------------------
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background p-4 md:p-6 lg:p-8">

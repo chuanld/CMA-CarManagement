@@ -53,6 +53,7 @@ import { is } from 'date-fns/locale'
 import { formatDate24h } from '@/utils/helper-client'
 import { Separator } from '@/components/ui/separator'
 import { useCar } from '@/app/context/car-context'
+import { displayDateTime } from '@/app/(main)/bookings/helper/handle-bookings'
 
 interface CarDetailsProps {
   car: Car | any
@@ -61,7 +62,7 @@ interface CarDetailsProps {
 }
 
 const CarDetails = () => {
-  const { car, testDriveInfo, upcomingBookings,user } =  useCar();
+  const { car, testDriveInfo, upcomingBookings, user } = useCar();
   const router = useRouter()
   const { isSignedIn } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState<boolean>(car.whishlisted || false)
@@ -156,58 +157,58 @@ const CarDetails = () => {
   }
 
 
-    if (!user) {
-          return (
-              <div className="container mx-auto px-6 py-10">
-                  <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-                              <CarIcon className="w-7 h-7 text-indigo-600" />
-                              Please Sign In to View Car Details
-                          </CardTitle>
-                      </CardHeader>
-                  </Card>
-              </div>
-          )
-      }
-  
-  
-      if (!car) {
-          return (
-              <div className="container mx-auto px-6 py-10">
-                  <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-                              <CarIcon className="w-7 h-7 text-indigo-600" />
-                              Car Not Found
-                          </CardTitle>
-                      </CardHeader>
-                  </Card>
-              </div>
-          )
-      }
-      if(!testDriveInfo){
-          return (
-              <div className="container mx-auto px-6 py-10">
-                  <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
-                          <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-                              <CarIcon className="w-7 h-7 text-indigo-600" />
-                              Test Drive Info Not Found
-                          </CardTitle>
-                      </CardHeader>
-                  </Card>
-              </div>
-          )
-      }
+  if (!user) {
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
+            <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
+              <CarIcon className="w-7 h-7 text-indigo-600" />
+              Please Sign In to View Car Details
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+
+
+  if (!car) {
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
+            <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
+              <CarIcon className="w-7 h-7 text-indigo-600" />
+              Car Not Found
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+  if (!testDriveInfo) {
+    return (
+      <div className="container mx-auto px-6 py-10">
+        <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
+            <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
+              <CarIcon className="w-7 h-7 text-indigo-600" />
+              Test Drive Info Not Found
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
 
 
   return (
-    
+
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
-        
+
         <Card className="relative overflow-hidden bg-card border border-border shadow-md rounded-2xl">
           <CardHeader className="bg-gradient-to-r from-primary to-accent p-6 text-primary-foreground">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -570,8 +571,7 @@ const CarDetails = () => {
                         <Separator className="w-full   py-[2px] text-red-900" />
                         <p className="text-sm text-red-600">
                           <CalendarIcon className="w-4 h-4 inline mr-1" />
-                          Your next test drive: {formatDate24h(userBookings.bookings[0].startTime)} - {formatDate24h(userBookings.bookings[0].endTime)}
-                          ({format(new Date(userBookings.bookings[0].bookingDate), 'EEEE, MMMM d, yyyy')})
+                          Your next test drive: {displayDateTime(userBookings.bookings[0].startTime)} - {displayDateTime(userBookings.bookings[0].endTime)}
                         </p>
                       </motion.div>
                     ) : (
@@ -629,8 +629,7 @@ const CarDetails = () => {
                         <Separator className="w-full   py-[2px] text-red-900" />
                         <p className="text-sm text-red-600">
                           <CalendarIcon className="w-4 h-4 inline mr-1" />
-                          Your next test drive: {formatDate24h(userRentalBookings[0].startTime)} - {formatDate24h(userRentalBookings[0].endTime)}
-                          ({format(new Date(userRentalBookings[0].bookingDate), 'EEEE, MMMM d, yyyy')})
+                          Your next test drive: {displayDateTime(new Date(userRentalBookings[0].startTime))} - {displayDateTime(new Date(userRentalBookings[0].endTime))}
                         </p>
                       </motion.div>
                     ) : (

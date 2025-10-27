@@ -26,11 +26,10 @@ const badgeVariants = cva(
         accent: "border-transparent bg-accent text-accent-foreground hover:bg-accent/90",
         outlineSecondary: "border text-secondary-foreground hover:bg-secondary hover:text-secondary",
 
-        // 🟡 Custom theme tones
+        // Custom theme tones
         champagne: "bg-[#d9b95c] text-[#14161b] hover:bg-[#c5a851]",
         navy: "bg-[#14161b] text-white hover:bg-[#1c2030]",
 
-        // 🌿 Pastel & soft tones phù hợp theme sáng
         sage: "bg-[#c9d6b8] text-[#2e3b2d] hover:bg-[#b9c6a7]", // xanh lá xám nhạt
         blush: "bg-[#f4c2c2] text-[#5a2e2e] hover:bg-[#f0b0b0]", // hồng phấn nhạt
         sky: "bg-[#cde3f8] text-[#1f2f45] hover:bg-[#bdd7f3]", // xanh trời pastel

@@ -63,7 +63,6 @@ export default function CarEditForm({ carId, defaultValues, updateCar }: any) {
                 deposit: defaultValues.rentInfo?.deposit ? defaultValues.rentInfo.deposit.toString() : '',
                 available: defaultValues.rentInfo?.available || true,
             },
-            // images: defaultValues.images ? defaultValues.images.map((url: string) => url) : [],
             images: defaultValues.images || [],
         },
     });
@@ -71,7 +70,6 @@ export default function CarEditForm({ carId, defaultValues, updateCar }: any) {
 
 
     const onMultiImagesDrop = useCallback((acceptedFiles: File[]) => {
-        // lọc file hợp lệ
         const validFiles = acceptedFiles.filter((file) => {
             if (file.size > 5 * 1024 * 1024) {
                 toast.error(`${file.name} exceeds the 5MB size limit.`);
@@ -90,9 +88,7 @@ export default function CarEditForm({ carId, defaultValues, updateCar }: any) {
                 if (e.target?.result) {
                     newImages.push(e.target.result);
                 }
-                // chỉ set state sau khi đọc xong hết
                 if (newImages.length === validFiles.length) {
-                    // const mappedFiles = validFiles.map((file) => ({ file, preview: URL.createObjectURL(file) }));
                     setUploadedImages((prev) => [...prev, ...newImages]);
                     toast.success(`Successfully uploaded ${newImages.length} images!`);
                 }
@@ -129,13 +125,7 @@ export default function CarEditForm({ carId, defaultValues, updateCar }: any) {
             const updateData = parseCarUpdatePayload(data, uploadedImages);
             await fnUpdateCar(carId, updateData);
 
-            //   const result = await updateCar(carId, formData);
-            //   if (result.success) {
-            //     toast.success("Car details updated successfully");
-            //     window.location.href = `/cars/${carId}`;
-            //   } else {
-            //     toast.error(result.error || "Failed to update car");
-            //   }
+
         } catch (err) {
             toast.error("An unexpected error occurred");
         } finally {

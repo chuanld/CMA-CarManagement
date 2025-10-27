@@ -14,15 +14,13 @@ export interface WorkingHour {
   dealer: Dealer
 }
 
-// Input type cho client (string dayOfWeek)
 export interface WorkingHourInput {
   dayOfWeek: string // 'MONDAY', 'TUESDAY', etc.
   isOpen: boolean
-  openTime: number | null // null nếu closed
+  openTime: number | null 
   closeTime: number | null
 }
 
-// Processed type cho server (enum DayOfWeek)
 export interface WorkingHourCreateInput {
   dayOfWeek: DayOfWeek
   isOpen: boolean

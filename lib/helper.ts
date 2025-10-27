@@ -184,9 +184,6 @@ export function serializeBooking(booking: any) {
     const totalHours = differenceInHours(end, start);
     const totalDays = differenceInDays(end, start);
 
-    // ✅ LOGIC:
-    // - < 24h → 'hourly'
-    // - >= 24h → 'daily'
     rentalType = totalHours < 24 ? "HOURLY" : "DAILY";
   }
 
@@ -349,37 +346,6 @@ const PREPARATION_HOURS = {
   daily: 1.0, // 1h
 };
 
-// export async function validateRentalStartTime(
-//   workingHours: any[],
-//   start: Date,
-//   rentalType: 'hourly' | 'daily'
-// ) {
-//   // TÍNH PICKUP TIME = START - PREPARATION
-//   const prepHours = PREPARATION_HOURS[rentalType]
-//   const pickupTime = new Date(start.getTime() - prepHours * 36e5)
-
-//   const dayName = pickupTime.toLocaleString("en-US", { weekday: "long" }).toUpperCase()
-//   const schedule = workingHours.find(wh => wh.dayOfWeek === dayName && wh.isOpen)
-
-//   if (!schedule) {
-//     throw new Error(`Dealer closed on ${dayName} for pickup preparation`)
-//   }
-
-//   const openHour = Math.floor(schedule.openTime / 100)
-//   const closeHour = Math.floor(schedule.closeTime / 100)
-//   const pickupH = pickupTime.getUTCHours()
-//   const startH = start.getUTCHours()
-
-//   // CHECK PICKUP THỜI GIAN CHUẨN BỊ
-//   if (pickupH < openHour || pickupH >= closeHour) {
-//     const maxStartHour = closeHour + prepHours
-//     throw new Error(
-//       `Rental requires ${prepHours}h preparation. ` +
-//       `Latest pickup: ${Math.floor(closeHour)}:00. ` +
-//       `Your start ${maxStartHour}:00 needs preparation at ${Math.floor(pickupH)}:00`
-//     )
-//   }
-// }
 
 export async function validateRentalStartTime(
   workingHours: any[],
@@ -387,7 +353,6 @@ export async function validateRentalStartTime(
   end: Date,
   rentalType: "hourly" | "daily"
 ) {
-  // ✅ DAILY: CHỈ CHECK START + END DAY OPEN
   if (rentalType === "daily") {
     const startDay = new Date(start)
       .toLocaleString("en-US", { weekday: "long" })

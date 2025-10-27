@@ -74,7 +74,6 @@ export async function processCarImageAI(file: File) {
             Only respond with the JSON object, nothing else.
         `;
 
-    // Get response from Gemini
     const result = await model.generateContent([imagePart, prompt]);
     const response = await result.response;
     const text = response.text();
@@ -168,7 +167,6 @@ export async function addCar({
   images: string[];
 }) {
   try {
-    // auth
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
@@ -204,19 +202,7 @@ export async function addCar({
     const supabase = createClient(cookieStore);
     const folderPath = `cars/${dealer.id}/${uuidv4()}`;
 
-    // Feature add images and info car in parallel to optimize time
-    // const imageUrls = (
-    //   await Promise.all(
-    //     images.map(async (img, i) => {
-    //       try {
-    //         return await uploadImageToSupabase(supabase, folderPath, img, i);
-    //       } catch (e) {
-    //         console.warn("Skip image upload:", e);
-    //         return null;
-    //       }
-    //     })
-    //   )
-    // ).filter(Boolean) as string[];
+
 
     const imageUrls: string[] = [];
     for (let i = 0; i < images.length; i++) {
@@ -351,180 +337,13 @@ export async function addCar({
   }
 }
 
-/**
- * 🚙 Get Cars (tìm kiếm, lọc, phân trang, sắp xếp)
- */
-// export async function getCars({
-//   search,
-//   pagination,
-//   sortBy = "createdAt",
-//   sortOrder = "desc",
-//   filters,
-// }: GetCarsInput) {
-//   try {
-//     const { userId } = await auth();
-//     if (!userId) throw new Error("Unauthorized");
-
-//     const user = await db.user.findUnique({
-//       where: { clerkUserId: userId },
-//     });
-//     if (!user) throw new Error("User not found");
-
-//     // ======== BUILD WHERE ==========
-//     const where: any = {};
-
-//     // search text
-//     if (search) {
-//       where.OR = [
-//         { make: { contains: search, mode: "insensitive" } },
-//         { model: { contains: search, mode: "insensitive" } },
-//         { color: { contains: search, mode: "insensitive" } },
-//         { bodyType: { contains: search, mode: "insensitive" } },
-//         { fuelType: { contains: search, mode: "insensitive" } },
-//         { transmission: { contains: search, mode: "insensitive" } },
-//         { description: { contains: search, mode: "insensitive" } },
-//       ];
-//     }
-
-//     // filters
-//     if (filters) {
-//       if (filters.status) where.status = filters.status;
-//       if (filters.featured !== undefined) where.featured = filters.featured;
-//       if (filters.bodyType)
-//         where.bodyType = { contains: filters.bodyType, mode: "insensitive" };
-//       if (filters.fuelType)
-//         where.fuelType = { contains: filters.fuelType, mode: "insensitive" };
-//       if (filters.transmission)
-//         where.transmission = {
-//           contains: filters.transmission,
-//           mode: "insensitive",
-//         };
-//       if (filters.color)
-//         where.color = { contains: filters.color, mode: "insensitive" };
-//       if (filters.year) where.year = filters.year;
-//       if (filters.make)
-//         where.make = { contains: filters.make, mode: "insensitive" };
-//       if (filters.model)
-//         where.model = { contains: filters.model, mode: "insensitive" };
-
-//       if (filters.minSalePrice || filters.maxSalePrice) {
-//         where.saleInfo = {};
-//         if (filters.minSalePrice) where.saleInfo.price = { gte: filters.minSalePrice };
-//         if (filters.maxSalePrice) {
-//           where.saleInfo.price = {
-//             ...where.saleInfo.price,
-//             lte: filters.maxPrice,
-//           };
-//         }
-//       }
-
-//       if (filters.minRentHourlyPrice || filters.maxRentHourlyPrice) {
-//         where.rentInfo = where.rentInfo || {};
-//         if (filters.minRentHourlyPrice) where.rentInfo.hourlyPrice = { gte: filters.minRentHourlyPrice };
-//         if (filters.maxRentHourlyPrice) {
-//           where.rentInfo.hourlyPrice = {
-//             ...where.rentInfo.hourlyPrice,
-//             lte: filters.maxPrice,
-//           };
-//         }
-//       }
-//       if (filters.minRentDailyPrice || filters.maxRentDailyPrice) {
-//         where.rentInfo = where.rentInfo || {};
-//         if (filters.minRentDailyPrice) where.rentInfo.dailyPrice = { gte: filters.minRentDailyPrice };
-//         if (filters.maxRentDailyPrice) {
-//           where.rentInfo.dailyPrice = {
-//             ...where.rentInfo.dailyPrice,
-//             lte: filters.maxRentDailyPrice,
-//           };
-//         }
-//       }
-//       if (filters.minDeposit || filters.maxDeposit) {
-//         where.depositInfo = where.depositInfo || {};
-//         if (filters.minDeposit) where.depositInfo.amount = { gte: filters.minDeposit };
-//         if (filters.maxDeposit) {
-//           where.depositInfo.amount = {
-//             ...where.depositInfo.amount,
-//             lte: filters.maxDeposit,
-//           };
-//         }
-//       }
-
-//       if (filters.negotiable !== undefined) {
-//         where.saleInfo = where.saleInfo || {};
-//         where.saleInfo.negotiable = filters.negotiable;
-//       }
-
-//     }
-
-//     // ======== PAGINATION ==========
-//     const page = pagination?.page || 1;
-//     const limit = pagination?.limit || 10;
-//     const skip = (page - 1) * limit;
-
-//     // ======== ORDER BY ==========
-//     // Lưu ý: không còn field price trong Car => sortBy.price phải sort qua saleInfo.price
-//     let orderBy: any = [{ createdAt: "desc" }];
-
-//     if (sortBy && sortOrder) {
-//       switch (sortBy) {
-//         case "price":
-//           orderBy = [
-//             { saleInfo: { price: sortOrder } },
-//             { createdAt: "desc" },
-//           ];
-//           break;
-//         case "year":
-//         case "createdAt":
-//           orderBy = [{ [sortBy]: sortOrder }];
-//           break;
-//         default:
-//           orderBy = [{ createdAt: "desc" }];
-//       }
-//     }
-
-//     // ======== QUERY ==========
-//     const total = await db.car.count({ where });
-
-//     const cars = await db.car.findMany({
-//       where,
-//       orderBy,
-//       skip,
-//       take: limit,
-//       include: {
-//         dealer: {
-//           include: { workingHours: true },
-//         },
-//         saleInfo: true,
-//         rentInfo: true,
-//       },
-//     });
-
-//     const serialized = cars.map((car) => serializeCarData(car));
-
-//     return {
-//       success: true,
-//       data: serialized,
-//       pagination: {
-//         total,
-//         page,
-//         limit,
-//         totalPages: Math.ceil(total / limit),
-//       },
-//     };
-//   } catch (err) {
-//     console.error("Get cars error:", err);
-//     return { success: false, error: (err as Error).message };
-//   }
-// }
 
 export async function getCars(input: GetCarsInput) {
   try {
-    // Validate input
     const validatedInput = GetCarsInputSchema.parse(input);
 
     const { search, pagination, sortBy, sortOrder, filters } = validatedInput;
 
-    // Authentication
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
 
@@ -534,10 +353,8 @@ export async function getCars(input: GetCarsInput) {
     if (!user) throw new Error("User not found");
     if (user.role !== "ADMIN") throw new Error("Forbidden");
 
-    // Build where clause
     const where: any = {};
 
-    // Search
     if (search) {
       where.OR = [
         { make: { contains: search, mode: "insensitive" } },
@@ -550,7 +367,6 @@ export async function getCars(input: GetCarsInput) {
       ];
     }
 
-    // Filters
     if (filters) {
       if (filters.status) where.status = filters.status;
       if (filters.featured !== undefined) where.featured = filters.featured;
@@ -578,8 +394,6 @@ export async function getCars(input: GetCarsInput) {
         where.avgRating = { gte: filters.avgRating };
       }
 
-      //v3 price filters
-      // ép loại xe
       if (filters.carType === "SALE") {
         where.saleInfo = { isNot: null };
         where.rentInfo = null;
@@ -856,19 +670,6 @@ export async function adminUpdateCarById(
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
-    // Feature add images and info car in parallel to optimize time
-    // const imageUrls = (
-    //   await Promise.all(
-    //     images.map(async (img, i) => {
-    //       try {
-    //         return await uploadImageToSupabase(supabase, folderPath, img, i);
-    //       } catch (e) {
-    //         console.warn("Skip image upload:", e);
-    //         return null;
-    //       }
-    //     })
-    //   )
-    // ).filter(Boolean) as string[];
     const car = await db.car.findUnique({
       where: { id: carId },
       include: { saleInfo: true, rentInfo: true },
@@ -942,9 +743,7 @@ export async function adminUpdateCarById(
       });
     }
 
-    // ----------------------------
-    // 🚘 5️⃣ Update RentInfo (nếu có)
-    // ----------------------------
+
     if (carData.carType === "RENT" || carData.carType === "BOTH") {
       await db.rentInfo.upsert({
         where: { carId: updatedCar.id },

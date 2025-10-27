@@ -34,11 +34,9 @@ const rentSchema = z.object({
   const totalHours = differenceInHours(end, start)
 
   if (data.rentalType === 'hourly') {
-    // ✅ HOURLY: Cho phép tối đa 24h (có thể qua ngày)
     return totalHours > 0 && totalHours <= 24
   }
   if (data.rentalType === 'daily') {
-    // ✅ DAILY: Tối thiểu 1 ngày đầy đủ
     return differenceInDays(end, start) >= 1
   }
   return false
@@ -66,7 +64,7 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
       defaultValues: {
         rentalType: 'daily',
         startAt: new Date().toISOString(),
-        endAt: addDays(new Date(), 1).toISOString(), // Default 1 ngày sau
+        endAt: addDays(new Date(), 1).toISOString(), 
       },
     })
 
@@ -114,7 +112,6 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
     if (rentalType === 'daily') {
       const days = Math.max(1, differenceInDays(end, start))
       const hours = differenceInHours(end, start) % 24
-      // Tính thêm ngày nếu có giờ lẻ
       if (hours > 0) {
 
         let oddHours = hours / 24
@@ -131,7 +128,6 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
     setTotalPrice(total)
   }, [rentalType, startAt, endAt, car])
 
-  /* 🧭 Auto-set end time khi đổi rental type */
   useEffect(() => {
     if (!startAt) return
 
@@ -139,9 +135,9 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
     let defaultEnd: Date
 
     if (rentalType === 'hourly') {
-      defaultEnd = addHours(start, 2) // Default 2h cho hourly
+      defaultEnd = addHours(start, 2) 
     } else {
-      defaultEnd = addDays(start, 1) // Default 1 ngày cho daily
+      defaultEnd = addDays(start, 1) 
     }
 
     setValue('endAt', defaultEnd.toISOString())
@@ -149,7 +145,6 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
 
   const isDateBooked = (date: Date) => {
     return bookedSlots.some(slot => {
-      // if (slot.id !== car.id) return false
       const slotStart = new Date(slot.startTime)
       const slotEnd = new Date(slot.endTime)
       return date >= slotStart && date <= slotEnd
@@ -208,12 +203,11 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
                   onSelect={(date) => {
                     if (!date) return
                     const base = current && !isNaN(current.getTime()) ? new Date(current) : new Date()
-                    // const withTime = new Date(date)
-                    // withTime.setHours(base.getHours(), base.getMinutes(), 0, 0)
+       
                     let withTime: Date
                     if (name === 'startAt') {
                       withTime = new Date(date)
-                      withTime.setHours(9, 0, 0, 0)  // Default 9:00 cho START
+                      withTime.setHours(9, 0, 0, 0)  
                     } else {
                       withTime = new Date(date)
                       withTime.setHours(base.getHours() || 9, base.getMinutes() || 0, 0, 0)
@@ -228,10 +222,7 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
                       )
                       return
                     }
-                    // if (isDateBooked(withTime)) {
-                    //   toast.error('This date is fully booked!')
-                    //   return
-                    // }
+    
 
                     field.onChange(withTime.toISOString())
                   }}
@@ -279,7 +270,6 @@ export function RentForm({ car, dealerShip, bookingInProcess, onSubmitForm, }: R
                   const timeDate = new Date(current || new Date())
                   timeDate.setHours(i, 0, 0, 0)
 
-                  // ✅ DISABLE LOGIC
                   let disabled = false
                   let reason = ''
 

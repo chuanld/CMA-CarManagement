@@ -23,7 +23,6 @@ const PaginationToolbar: React.FC<PaginationProps> = ({ pagination, onPageChange
     if (page < totalPages) onPageChange(page + 1);
   };
 
-  // Tạo mảng số trang với dots khi nhiều trang
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     if (totalPages <= 7) {
@@ -40,14 +39,12 @@ const PaginationToolbar: React.FC<PaginationProps> = ({ pagination, onPageChange
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between p-2 bg-gray-50 rounded-b-lg w-full">
-      {/* Info */}
+  
       <div className="text-gray-700 text-sm  sm:mb-0">
         Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
       </div>
 
-      {/* Pagination Controls */}
       <div className="flex items-center space-x-1">
-        {/* Previous */}
         <Button
           variant="outline"
           size="sm"
@@ -58,7 +55,6 @@ const PaginationToolbar: React.FC<PaginationProps> = ({ pagination, onPageChange
           <ChevronLeft size={16} />
         </Button>
 
-        {/* Page Numbers - hidden trên mobile */}
         <div className="hidden sm:flex items-center space-x-1">
           {getPageNumbers().map((p, idx) =>
             typeof p === "number" ? (

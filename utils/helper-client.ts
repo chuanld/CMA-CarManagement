@@ -7,8 +7,7 @@ import { parseISO, format } from 'date-fns';
  */
 export function formatDate24h(isoString: string): string {
   try {
-    const date = new Date(isoString); // date ở UTC
-    // lấy giờ và phút trực tiếp từ UTC
+    const date = new Date(isoString); 
     const hours = date.getUTCHours().toString().padStart(2, '0');
     const minutes = date.getUTCMinutes().toString().padStart(2, '0');
     const day = date.getUTCDate().toString().padStart(2, '0');
