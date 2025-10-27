@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, CarFront, Menu, X, LogIn, Bell, Search, Loader2 } from 'lucide-react'
+import { Heart, CarFront, Menu, X, LogIn, Bell, Search, Loader2, ShieldBan } from 'lucide-react'
 import Image from 'next/image'
 import { SignedIn, SignedOut, SignOutButton, UserButton, useUser } from '@clerk/nextjs'
 import { ThemeToggle } from './theme-switcher'
@@ -94,7 +94,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
           <Input
             type="text"
             placeholder="Type desired car model..."
-            className="bg-transparent border-none outline-none text-sm md:text-base placeholder:text-muted-foreground transition-colors w-full"
+            className="bg-transparent border-none outline-none text-sm  placeholder:text-muted-foreground transition-colors w-full"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -104,7 +104,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
             onClick={() => smoothPush(`/cars?search=${encodeURIComponent(searchQuery)}`)}
             disabled={isPending}
           >
-            Search
+            <span className='text-sm whitespace-nowrap'>search</span>
             {isPending ? <Loader2 className="animate-spin" /> : <Search size={18} />}
           </Button>
         </motion.div>
@@ -119,8 +119,8 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
                 className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
                 onClick={() => smoothPush('/admin')}
               >
-                <CarFront size={18} className="group-hover:rotate-12 transition-transform" />
-                <span>Admin Portal</span>
+                <ShieldBan size={18} className="group-hover:rotate-12 transition-transform" />
+                <span className='whitespace-nowrap text-sm'>Admin Portal</span>
                 <motion.div
                   className="absolute inset-0 rounded-full bg-accent/20 blur opacity-0 group-hover:opacity-100"
                   initial={{ scale: 0 }}
@@ -135,7 +135,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
               onClick={() => smoothPush('/reservations')}
             >
               <CarFront size={18} className="group-hover:rotate-12 transition-transform" />
-              <span>My Reservations</span>
+              <span className='whitespace-nowrap text-sm'>My Reservations</span>
               <motion.div
                 className="absolute inset-0 rounded-full bg-accent/20 blur opacity-0 group-hover:opacity-100"
                 initial={{ scale: 0 }}
@@ -151,7 +151,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
               onClick={() => smoothPush('/saved-cars')}
             >
               <Heart size={18} className="group-hover:scale-110 transition-transform fill-current" />
-              <span className="text-foreground">Saved Cars</span>
+              <span className="text-foreground whitespace-nowrap text-sm">Saved Cars</span>
             </motion.button>
             <Bell size={20} className="relative">
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
@@ -178,7 +178,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
               onClick={() => smoothPush('/sign-in')}
             >
               <LogIn size={18} className="group-hover:rotate-12 transition-transform" />
-              <span>Login</span>
+              <span className='whitespace-nowrap text-sm'>Login</span>
               <motion.div
                 className="absolute inset-0 rounded-full bg-accent/20 blur opacity-0 group-hover:opacity-100"
                 initial={{ scale: 0 }}
