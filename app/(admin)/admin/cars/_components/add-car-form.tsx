@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import * as z from "zod";
 import { carDetailsFromAI } from '@/types/car';
 import { ApiResponse } from '@/types/api';
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Hydrogen', 'Plug-in Hybrid', 'Gasoline'] as const;
 const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic','CVT', 'Dual-Clutch'] as const;
@@ -35,6 +36,7 @@ const carStatuses = ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'PENDING'] as const;
 const carTypes = ["SALE", "RENT", "BOTH"] as const;
 
 const AddCarForm = () => {
+  const {smoothPush, isPending} = useSmoothRouter();
   const [activeTab, setActiveTab] = useState<string>('ai');
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -105,9 +107,9 @@ const AddCarForm = () => {
   useEffect(() => {
     if (addCarResult && !addCarError) {
       toast.success('Car added successfully!');
-      router.push('/admin/cars');
+      smoothPush('/admin/cars');
     }
-  }, [addCarResult, addCarError, router])
+  }, [addCarResult, addCarError, smoothPush])
 
   const onSubmit = async (data: z.infer<typeof carFormSchema>) => {
     if (!data) return;
@@ -577,7 +579,7 @@ const AddCarForm = () => {
                   </div>
                 )}
 
-                <Button type='submit' className='mt-4 w-fit' disabled={addingCar}>
+                <Button type='submit' className='mt-4 w-fit' disabled={addingCar || isPending}>
                   Add Car
                   {addingCar && (<Loader2 className='ml-2 h-4 w-4 animate-spin' />)}
                 </Button>
@@ -618,7 +620,7 @@ const AddCarForm = () => {
                         </Button>
                         <Button
                           onClick={processWithAi}
-                          disabled={processImageAiLoading}
+                          disabled={processImageAiLoading || isPending}
                           size="sm"
                         >
                           {processImageAiLoading ? (

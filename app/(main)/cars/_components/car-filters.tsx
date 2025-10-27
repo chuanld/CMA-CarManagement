@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { FilterOptions } from "@/types/api";
-import { Filter, Sliders, X, ChevronDown, Clock } from "lucide-react";
+import { Filter, Sliders, X, ChevronDown, Clock, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import CarFilterControls from "./filter-controls";
@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrencyVND } from "@/lib/helper";
+import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
 
 type Props = {
     filters: FilterOptions | any;
@@ -34,6 +35,7 @@ type Props = {
 
 const CarFilters = ({ filters }: Props) => {
     const router = useRouter();
+    const { smoothPush, isPending } = useSmoothRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     
@@ -143,7 +145,7 @@ const CarFilters = ({ filters }: Props) => {
         const queryString = params.toString();
         const url = queryString ? `${pathname}?${queryString}` : pathname;
 
-        router.push(url);
+        smoothPush(url);
         setIsMobileFiltersOpen(false);
     };
 
@@ -172,7 +174,7 @@ const CarFilters = ({ filters }: Props) => {
 
         const queryString = params.toString();
         const url = queryString ? `${pathname}?${queryString}` : pathname;
-        router.push(url);
+        smoothPush(url);
         setIsMobileFiltersOpen(false);
     };
 
@@ -329,8 +331,9 @@ const CarFilters = ({ filters }: Props) => {
                         <Button
                             className="w-full btn-gold"
                             onClick={applyFilters}
+                            disabled={isPending}
                         >
-                            Apply Filters
+                            Apply Filters <Loader2 className={`h-4 w-4 ml-2 ${isPending ? 'animate-spin' : 'invisible'}`} />
                         </Button>
                     </CardFooter>
                 </Card>

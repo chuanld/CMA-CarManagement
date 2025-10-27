@@ -21,6 +21,7 @@ import { User } from '@/types/user';
 import useFetch from '@/app/hooks/use-fetch';
 import { ApiResponse } from '@/types/api';
 import { useCar } from '@/app/context/car-context';
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 interface PurchasePageProps {
   car: Car;
@@ -35,6 +36,7 @@ interface PurchasePageProps {
 export default function PurchaseDetails() {
   
   const router = useRouter();
+  const {smoothPush,isPending} = useSmoothRouter();
   const [openEMI, setOpenEMI] = useState(false);
 
   const { car, testDriveInfo, upcomingBookings } = useCar();
@@ -81,7 +83,7 @@ export default function PurchaseDetails() {
     if (purchaseData?.success) {
       toast.success('Purchase request sent successfully!');
       setTimeout(() => {
-        router.push(`/purchases/${purchaseData.data.id}`);
+        smoothPush(`/purchases/${purchaseData.data.id}`);
       }, 1500);
     }
   }, [purchaseData]);
@@ -97,7 +99,7 @@ export default function PurchaseDetails() {
   };
 
   const handleBookTestDrive = () => {
-    router.push(`/test-drive/${car.id}`);
+    smoothPush(`/test-drive/${car.id}`);
   };
 
   return (
@@ -256,7 +258,7 @@ export default function PurchaseDetails() {
                   <Button
                     className="w-full btn-gold text-lg h-14"
                     onClick={handlePurchase}
-                    disabled={isLoading}
+                    disabled={isLoading || isPending}
                   >
                     {isLoading ? (
                       <>Processing...</>
@@ -302,7 +304,7 @@ export default function PurchaseDetails() {
                     variant="outline"
                     className="h-12 btn-outline"
                     onClick={handleBookTestDrive}
-                    disabled={!isAvailable}
+                    disabled={!isAvailable || isPending}
                   >
                     <Navigation className="w-4 h-4 mr-2" />
                     Test Drive

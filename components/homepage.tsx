@@ -6,7 +6,7 @@ import HomeSearch from "@/components/home-search";
 import { Button } from "@/components/ui/button";
 import { bodyTypes, carMakes, faqItems } from "@/lib/data";
 import { Car } from "@/types/car";
-import { Calendar, Car as CarIcon, ChevronRight, Pencil, ShieldCheck } from "lucide-react";
+import { Calendar, Car as CarIcon, ChevronRight, Loader2, Pencil, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -17,6 +17,8 @@ import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
   const { smoothPush, isPending } = useSmoothRouter();
+
+
 
   return (
     <div className="pt-20 flex flex-col items-center justify-center gap-8 bg-background text-foreground">
@@ -71,12 +73,14 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 rounded-lg transition-all active:scale-95 shadow-glow"
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 rounded-lg transition-all active:scale-95 shadow-glow cursor-pointer"
                     asChild
+                    onClick={()=>smoothPush('/cars')}
+                    disabled={isPending}
                   >
-                    <Link href="/cars">
-                      View All Cars <ChevronRight size={16} className="ml-2 h-4 w-4" />
-                    </Link>
+                    <span className="flex items-center cursor-pointer">
+                      View All Cars {isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <ChevronRight size={16} className="ml-2 h-4 w-4" />}
+                    </span>
                   </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content className="bg-primary text-foreground text-xs rounded-lg p-2 shadow-xl border border-border">
@@ -116,10 +120,11 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
                   <Button
                     className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 rounded-lg transition-all active:scale-95 shadow-glow"
                     asChild
+                    onClick={()=>smoothPush('/about')}
                   >
-                    <Link href="/about">
-                      Learn More <ChevronRight size={16} className="ml-2 h-4 w-4" />
-                    </Link>
+                      <span className="flex items-center">
+                        Learn More <ChevronRight size={16} className="ml-2 h-4 w-4" />
+                      </span>
                   </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content className="bg-primary text-foreground text-xs rounded-lg p-2 shadow-xl border border-border">
@@ -163,10 +168,11 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
             <Button
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 rounded-lg transition-all active:scale-95 shadow-glow"
               asChild
+
             >
-              <Link href="/cars">
+              <span className="flex items-center cursor-pointer" onClick={()=>smoothPush('/cars')}>
                 View All Cars <ChevronRight size={16} className="ml-2 h-4 w-4" />
-              </Link>
+              </span>
             </Button>
           </div>
 
@@ -180,7 +186,7 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                 >
-                  <Link href={`/cars?make=${make.name}`} className="flex flex-col items-center">
+                  <span onClick={() => smoothPush(`/cars?make=${make.name}`)} className="flex flex-col items-center cursor-pointer">
                     <Image
                       src={make.image}
                       alt={make.name}
@@ -189,7 +195,7 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
                       className="object-contain"
                     />
                     <span className="mt-2 text-sm font-medium text-accent-foreground">{make.name}</span>
-                  </Link>
+                  </span>
                 </motion.div>
               ))
             ) : (
@@ -208,9 +214,9 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 rounded-lg transition-all active:scale-95 shadow-glow"
               asChild
             >
-              <Link href="/cars">
+              <span onClick={() => smoothPush('/cars')} className="flex items-center cursor-pointer">
                 View All Cars <ChevronRight size={16} className="ml-2 h-4 w-4" />
-              </Link>
+              </span>
             </Button>
           </div>
 
@@ -224,7 +230,7 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
                 >
-                  <Link href={`/cars?bodyType=${bodyType.name}`} className="flex flex-col items-center">
+                  <span onClick={() => smoothPush(`/cars?bodyType=${bodyType.name}`)} className="flex flex-col items-center cursor-pointer">
                     <Image
                       src={bodyType.image}
                       alt={bodyType.name}
@@ -233,7 +239,7 @@ const HomePage = ({ featuredCars }: { featuredCars: Car[] }) => {
                       className="object-contain"
                     />
                     <h3 className="mt-2 text-sm font-medium text-accent-foreground">{bodyType.name}</h3>
-                  </Link>
+                  </span>
                 </motion.div>
               ))
             ) : (

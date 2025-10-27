@@ -11,7 +11,6 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { motion } from "framer-motion";
 import FaQ from "@/components/faq";
 import HomePage from "@/components/homepage";
-import { checkUser } from "@/lib/checkUser";
 import Header from "@/components/header";
 
 export default async function Home() {

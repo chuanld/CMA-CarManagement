@@ -20,6 +20,7 @@ import {
   Fuel,
   Gauge,
   Heart,
+  Loader2,
   MapPin,
   MessageSquare,
   Navigation,
@@ -54,6 +55,9 @@ import { formatDate24h } from '@/utils/helper-client'
 import { Separator } from '@/components/ui/separator'
 import { useCar } from '@/app/context/car-context'
 import { displayDateTime } from '@/app/(main)/bookings/helper/handle-bookings'
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router'
+import { Booking } from '@/types/booking'
+import { currentUser } from '@/actions/user'
 
 interface CarDetailsProps {
   car: Car | any
@@ -62,8 +66,8 @@ interface CarDetailsProps {
 }
 
 const CarDetails = () => {
-  const { car, testDriveInfo, upcomingBookings, user } = useCar();
-  const router = useRouter()
+  const { car, testDriveInfo, upcomingBookings,user } = useCar();
+  const { smoothPush, isPending } = useSmoothRouter()
   const { isSignedIn } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState<boolean>(car.whishlisted || false)
   const [activeTab, setActiveTab] = useState(car.carType === 'RENT' ? 'rent' : 'sale');
@@ -73,11 +77,16 @@ const CarDetails = () => {
   const isSale = businessType === 'SALE' || businessType === 'BOTH'
   const isRent = businessType === 'RENT' || businessType === 'BOTH'
 
-  const userBookings = testDriveInfo || {}
+  const userTestDrive = testDriveInfo || {}
+  
+
 
   const existUserBookings: TestDriveBooking[] = car?.testDriveBookings || []
 
-  const userRentalBookings: TestDriveBooking[] = upcomingBookings?.rentals || []
+  const upcomingRentalBookings: TestDriveBooking[] = upcomingBookings?.rentals || []
+  console.log(upcomingRentalBookings,'up')
+  console.log(user,'user')
+  const userRentalBookings: TestDriveBooking[] = upcomingRentalBookings.filter((b => b.user?.id === user?.id)) || []
   const nextBooking: TestDriveBooking | null =
     existUserBookings.length > 0
       ? [...existUserBookings].sort(
@@ -140,7 +149,7 @@ const CarDetails = () => {
       toast.error('You must be signed in to book a test drive.')
       return
     }
-    router.push(`/test-drive/${car.id}`)
+    smoothPush(`/test-drive/${car.id}`)
   }
 
   const getMileageProgress = () => {
@@ -153,7 +162,7 @@ const CarDetails = () => {
 
   const handleBooking = (value: string) => {
     setActiveTab(value);
-    router.push(`/bookings/${car.id}`);
+    smoothPush(`/bookings/${car.id}`);
   }
 
 
@@ -187,20 +196,20 @@ const CarDetails = () => {
       </div>
     )
   }
-  if (!testDriveInfo) {
-    return (
-      <div className="container mx-auto px-6 py-10">
-        <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
-            <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-              <CarIcon className="w-7 h-7 text-indigo-600" />
-              Test Drive Info Not Found
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-    )
-  }
+  // if (!testDriveInfo) {
+  //   return (
+  //     <div className="container mx-auto px-6 py-10">
+  //       <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
+  //         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
+  //           <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
+  //             <CarIcon className="w-7 h-7 text-indigo-600" />
+  //             Test Drive Info Not Found
+  //           </CardTitle>
+  //         </CardHeader>
+  //       </Card>
+  //     </div>
+  //   )
+  // }
 
 
   return (
@@ -238,7 +247,7 @@ const CarDetails = () => {
                       : 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground'
                   )}
                   onClick={handleToggleSaved}
-                  disabled={savingCar}
+                  disabled={savingCar || isPending}
                 >
                   <Heart className="w-5 h-5" />
                 </Button>
@@ -248,6 +257,7 @@ const CarDetails = () => {
                   size="icon"
                   className="rounded-full h-10 w-10 bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground shadow-md"
                   onClick={handleShareCar}
+                  disabled={isPending}
                 >
                   <Share2 className="w-5 h-5" />
                 </Button>
@@ -340,16 +350,16 @@ const CarDetails = () => {
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
-                          className="w-full h-auto bg-accent hover:bg-accent/90 text-primary-foreground flex flex-col"
-                          disabled={car.isBookedByOther || car.status !== 'AVAILABLE' || !userBookings.canBook}
+                          className="w-full h-auto bg-accent hover:bg-accent/90 text-primary-foreground flex flex-col cursor-pointer"
+                          disabled={car.isBookedByOther || car.status !== 'AVAILABLE' || !userTestDrive.canBook || isPending}
                           aria-label="Book a test drive"
                         >
                           <div className='flex'>
                             <Navigation className="w-5 h-5 mr-2" />
-                            Book Test Drive (1 Hour) {userBookings.count}/{userBookings.max}
+                            Book Test Drive (1 Hour) {userTestDrive.count}/{userTestDrive.max} {isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                           </div>
 
-                          <p className='text-sm text-primary-foreground italic'>{userBookings.canBook ? `Can book ${userBookings.max - userBookings.count} more test drives.` : "You have reached your booking limit."}</p>
+                          <p className='text-sm text-primary-foreground italic'>{userTestDrive.canBook ? `Can book ${userTestDrive.max - userTestDrive.count} more test drives.` : "You have reached your booking limit."}</p>
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -357,8 +367,10 @@ const CarDetails = () => {
                           <DialogTitle>Book Test Drive</DialogTitle>
                         </DialogHeader>
                         <p className="text-sm text-primary-foreground">Schedule a 1-hour test drive for this vehicle.</p>
-                        <Button onClick={() => handleBooking('test-drive')} className="bg-bg-cma hover:bg-cma/90">
-                          Confirm Test Drive
+                        <Button onClick={() => handleBooking('test-drive')} className="bg-bg-cma hover:bg-cma/90"
+                          disabled={isPending}
+                        >
+                          Confirm Test Drive {isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                         </Button>
                       </DialogContent>
                     </Dialog>
@@ -368,7 +380,7 @@ const CarDetails = () => {
                       <DialogTrigger asChild>
                         <Button
                           className="w-full bg-accent-foreground hover:bg-accent-foreground/90 text-accent flex items-center justify-center"
-                          disabled={car.status !== 'AVAILABLE'}
+                          disabled={car.status !== 'AVAILABLE' || isPending}
                           aria-label="Book a rental"
                         >
                           <BookCheck className="w-5 h-5 mr-2" />
@@ -380,8 +392,12 @@ const CarDetails = () => {
                           <DialogTitle>Book Rental</DialogTitle>
                         </DialogHeader>
                         <p className="text-sm text-gray-600">Choose rental duration (hourly or daily).</p>
-                        <Button onClick={() => handleBooking('rental')} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Confirm Rental
+                        <Button 
+                          onClick={() => handleBooking('rental')} 
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                          disabled={isPending}
+                          >
+                          Confirm Rental {isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                         </Button>
                       </DialogContent>
                     </Dialog>
@@ -555,13 +571,13 @@ const CarDetails = () => {
                     <CardTitle className="text-xl font-bold">Schedule a Test Drive</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    {userBookings && userBookings.count > 0 ? (
+                    {userTestDrive.bookings && userTestDrive.bookings.length > 0 ? (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="  flex flex-col gap-4"
                       >
-                        {userBookings.bookings.map((book: any, i: number) => (
+                         { userTestDrive.bookings.map((book: any, i: number) => (
                           <p key={i} className="text-md text-black-600">
                             <CalendarIcon className="w-4 h-4 inline mr-1" />
                             Test drive on: {format(new Date(book.bookingDate), 'EEEE, MMMM d, yyyy')}
@@ -571,7 +587,7 @@ const CarDetails = () => {
                         <Separator className="w-full   py-[2px] text-red-900" />
                         <p className="text-sm text-red-600">
                           <CalendarIcon className="w-4 h-4 inline mr-1" />
-                          Your next test drive: {displayDateTime(userBookings.bookings[0].startTime)} - {displayDateTime(userBookings.bookings[0].endTime)}
+                          Your next test drive: {displayDateTime(userTestDrive.bookings[0].startTime)} - {displayDateTime(userTestDrive.bookings[0].endTime)}
                         </p>
                       </motion.div>
                     ) : (
@@ -603,7 +619,7 @@ const CarDetails = () => {
                 </Card>
               </motion.div>
             )}
-            {userRentalBookings && userRentalBookings.length > 0 && (
+            {userRentalBookings.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -613,7 +629,7 @@ const CarDetails = () => {
                     <CardTitle className="text-xl font-bold text-gray-800">Schedule a Test Drive</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    {userRentalBookings && userRentalBookings.length > 0 ? (
+                    { userRentalBookings.length > 0 ? (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -629,7 +645,7 @@ const CarDetails = () => {
                         <Separator className="w-full   py-[2px] text-red-900" />
                         <p className="text-sm text-red-600">
                           <CalendarIcon className="w-4 h-4 inline mr-1" />
-                          Your next test drive: {displayDateTime(new Date(userRentalBookings[0].startTime))} - {displayDateTime(new Date(userRentalBookings[0].endTime))}
+                          Next test drive: {displayDateTime(new Date(userRentalBookings[0].startTime))} - {displayDateTime(new Date(userRentalBookings[0].endTime))}
                         </p>
                       </motion.div>
                     ) : (

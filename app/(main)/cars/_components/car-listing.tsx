@@ -32,6 +32,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
 
 const CarListing = () => {
   const searchParams = useSearchParams();
@@ -49,6 +50,7 @@ const CarListing = () => {
   const maxPrice = searchParams.get("maxPrice") || "100000";
   const sortBy = searchParams.get("sortBy") || "newest";
   const page = parseInt(searchParams.get("page") || "1");
+  const { smoothPush,isPending } = useSmoothRouter();
 
   const {
     loading: isFetchCar,
@@ -122,7 +124,7 @@ const CarListing = () => {
               className="btn-outline"
               asChild
             >
-              <Link href="/cars">Clear Filters & Explore</Link>
+              <span onClick={()=>smoothPush('/cars')}>Clear Filters & Explore</span>
             </Button>
           </div>
         </CardContent>
@@ -136,7 +138,7 @@ const CarListing = () => {
     const params = new URLSearchParams(searchParams.toString());
     const pathname = window.location.pathname;
     params.set("page", newPage.toString());
-    router.push(`${pathname}?${params.toString()}`);
+    smoothPush(`${pathname}?${params.toString()}`);
   };
 
   return (

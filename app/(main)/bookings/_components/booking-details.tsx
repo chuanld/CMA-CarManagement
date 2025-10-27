@@ -24,7 +24,7 @@ import { z } from 'zod'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCurrencyVND } from '@/lib/helper'
-import { TestDriveBooking } from '@/types/user'
+import { TestDriveBooking, User } from '@/types/user'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -36,6 +36,8 @@ import { formatDate24h } from '@/utils/helper-client'
 import { TestDriveForm } from './test-drive'
 import { RentForm } from './rental'
 import { displayDateTime } from '../helper/handle-bookings'
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router'
+import { useCurrentUser } from '@/app/hooks/use-current-user'
 interface TimeSlot {
     id: string
     label: string
@@ -56,6 +58,9 @@ interface TestDriveFormProps {
 
 const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDriveFormProps) => {
     const router = useRouter()
+    const { smoothPush,isPending } = useSmoothRouter()
+    const { user } = useCurrentUser()
+    
 
     const [selectedTab, setSelectedTab] = useState('details')
 
@@ -81,6 +86,10 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
     //temporary upcoming bookings
     const userTestDrives = testDriveInfo || {}
     const logBookings: Booking[] = upcomingBookings || []
+    console.log(testDriveInfo,'ts')
+
+    //logBookings current user
+    const currentUserBookings = logBookings.filter((b) => b.userId === user?.id);
 
 
     const { data: bookingResult, error: bookingError, loading: bookingInProcess, fetchData: fnBookTestDrive } =
@@ -123,7 +132,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
 
     const handleCloseConfirmation = () => {
         setShowConfirmation(false)
-        router.push(`/cars/${car.id}`)
+        smoothPush(`/cars/${car.id}`)
     }
 
     const handleBookTestDrive = async (value: any, type: string) => {
@@ -357,7 +366,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                                             onSubmitForm={handleBookTestDrive}
                                             car={car}
                                             userTestDrives={userTestDrives}
-                                            bookingInProcess={bookingInProcess}
+                                            bookingInProcess={bookingInProcess || isPending}
                                             upcomingBookings={upcomingBookings as Booking[]}
                                             dealerShip={dealerShip}
                                         />
@@ -365,7 +374,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                                         <RentForm
                                             car={car}
                                             dealerShip={dealerShip}
-                                            bookingInProcess={bookingInProcess}
+                                            bookingInProcess={bookingInProcess || isPending}
                                             onSubmitForm={handleBookTestDrive} // hoặc createBooking riêng cho rental
                                         />
 
@@ -477,7 +486,7 @@ const BookingDetails = ({ car, dealer, upcomingBookings, testDriveInfo }: TestDr
                                 <CardContent className="p-6">
                                     {logBookings && logBookings.length > 0 ? (
                                         <ul className="space-y-4 text-sm ">
-                                            {logBookings.map((booking, index) => (
+                                            {logBookings.filter((b)=>b.userId === user?.id).map((booking, index) => (
                                                 <li key={index} className="border-b pb-3">
                                                     <p className="font-semibold ">
                                                         Depart: {format(new Date(booking.bookingDate), 'MMMM d, yyyy')}

@@ -9,9 +9,11 @@ import { useRouter } from 'next/navigation';
 import useFetch from '@/app/hooks/use-fetch';
 import { processImageSearch } from '@/actions/home';
 import { ApiResponse } from '@/types/api';
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 
 const HomeSearch = () => {
+  const {isPending, smoothPush} = useSmoothRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isImageSearchActive, setIsImageSearchActive] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -62,7 +64,7 @@ const HomeSearch = () => {
       toast.error("Please enter a search term.");
       return;
     }
-    router.push(`/cars?search=${encodeURIComponent(searchTerm)}`);
+    smoothPush(`/cars?search=${encodeURIComponent(searchTerm)}`);
   }
 
   const handleImageSearch = async (e: React.FormEvent) => {
@@ -104,13 +106,16 @@ const HomeSearch = () => {
           <div className='  w-full flex items-center border-none border-b-8 border-white text-2xl text-white '>
             <Input type='text' placeholder='Search for cars, brands, models...' className=' relative w-full pr-10 py-5 outline-none border-none focus:border-blue-500 text-white font-medium'
               onChange={(e) => setSearchTerm(e.target.value)}
-              value={searchTerm} />
+              value={searchTerm} 
+              disabled={isPending}
+              />
           </div>
 
           <div className='relative right-0 flex items-center justify-around m-auto rounded-full  cursor-pointer gap-2'>
             <div>
               <Camera className={`m-auto text-gray-400 cursor-pointer rounded-full transform  ${isImageSearchActive ? 'bg-gray-500' : ''}`} size={25}
-                onClick={() => setIsImageSearchActive(!isImageSearchActive)} />
+                onClick={() => setIsImageSearchActive(!isImageSearchActive)} 
+                />
             </div>
 
             {
@@ -121,8 +126,8 @@ const HomeSearch = () => {
               )
             }
             <Button type='submit' className=' rounded-full w-full cursor-pointer'
-              disabled={isUploading}>
-              {isUploading ? 'Uploading...' : 'Search'}
+              disabled={isUploading || isPending}>
+              {isUploading ? 'Uploading...' : 'Search'} {isPending && <Loader2 className='animate-spin ml-2' size={16} />}
             </Button>
           </div>
 
@@ -141,10 +146,10 @@ const HomeSearch = () => {
                     
                       <div className=' flex gap-2 items-center justify-center w-full'>
                         <Button type='submit' className=' rounded-full cursor-pointer' disabled={isProcessing || isUploading}>
-                          {isProcessing && <Loader2 className='animate-spin mr-2' size={16} />}
+                          {(isProcessing || isPending) && <Loader2 className='animate-spin mr-2' size={16} />}
                           {isProcessing ? 'Searching...' : 'Search by Image'}
                         </Button>
-                        <Button className='bg-gray-500' variant='ghost' onClick={() => { setSearchImage(null); setImagePreview(null); toast.info("Image removed successfully!"); }}>Remove Image</Button>
+                        <Button className='bg-gray-500' variant='ghost' disabled={isPending} onClick={() => { setSearchImage(null); setImagePreview(null); toast.info("Image removed successfully!");  }}>Remove Image</Button>
 
                       </div>
 

@@ -21,6 +21,7 @@ import useFetch from '@/app/hooks/use-fetch';
 import { ApiResponse } from '@/types/api';
 import { redirect } from 'next/dist/server/api-utils';
 import { useRouter } from 'next/navigation';
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 interface PurchaseInfoProps {
   purchase: any;
@@ -31,6 +32,7 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
   const [isCancelling, setIsCancelling] = useState(false);
   const [openEMI, setOpenEMI] = useState(false);
   const router = useRouter();
+  const { smoothPush,isPending } = useSmoothRouter();
 
   if (!purchase) return null;
 
@@ -64,11 +66,11 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
       if(isDealer){
         if(updatedPurchase.data.status === 'CONFIRMED') {
           toast.success('Purchase status updated successfully. Please proceed to deliver the car.')
-          router.push(`/purchases/success?purchaseId=${id}`)
+          smoothPush(`/purchases/success?purchaseId=${id}`)
 
         }else if(updatedPurchase.data.status === 'COMPLETED'){
           toast.success('Purchase marked as completed successfully.')
-          router.push(`/purchases/success?purchaseId=${id}`)
+          smoothPush(`/purchases/success?purchaseId=${id}`)
 
         }else{
           toast.success('Purchase cancelled successfully')
@@ -78,10 +80,10 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
       }else{
         if(updatedPurchase.data.status === 'CANCELLED'){
           toast.success('Purchase status updated successfully')
-          router.push('/purchases')
+          smoothPush('/purchases')
         }else{
           toast.success('Purchase status updated successfully')
-          router.push(`/purchases/success?purchaseId=${id}`)
+          smoothPush(`/purchases/success?purchaseId=${id}`)
         }
       }
     }
@@ -135,7 +137,7 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
                 variant="destructive"
                 size="sm"
                 onClick={() => handleStatusUpdate('CANCELLED')}
-                disabled={isCancelling}
+                disabled={isCancelling || isPending}
               >
                 <XCircle className="w-4 h-4 mr-2" />
                 Cancel Purchase
@@ -146,7 +148,7 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
                 className="btn-primary"
                 size="sm"
                 onClick={() => handleStatusUpdate('CONFIRMED')}
-                disabled={isCancelling}
+                disabled={isCancelling || isPending}
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 Confirm Order
@@ -157,7 +159,7 @@ export default function PurchaseInfoComponent({ purchase, currentUserId }: Purch
                 className="btn-gold"
                 size="sm"
                 onClick={() => handleStatusUpdate('COMPLETED')}
-                disabled={isCancelling}
+                disabled={isCancelling || isPending}
               >
                 <Check className="w-4 h-4 mr-2" />
                 Mark as Delivered

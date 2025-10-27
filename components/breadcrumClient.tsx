@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ChevronRight, Clock } from "lucide-react";
+import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
 
 interface BreadcrumbItemType {
   label: string;
@@ -32,6 +33,7 @@ const BreadcrumbComponent = ({
   const { id } = useParams();
 
   const router = useRouter();
+  const { smoothPush } = useSmoothRouter();
   const pathname = usePathname();
 
   // Generate breadcrumb items
@@ -64,7 +66,7 @@ const BreadcrumbComponent = ({
   }, [pathname, customItems]);
 
   // Handle navigation
-  const handleNavigate = (href: string) => router.push(href);
+  const handleNavigate = (href: string) => smoothPush(href);
 
   // Format timestamp
   const formatTimestamp = () => {

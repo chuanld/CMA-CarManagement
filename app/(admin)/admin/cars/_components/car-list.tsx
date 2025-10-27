@@ -59,12 +59,14 @@ import { cn } from "@/lib/utils";
 import { CarFilters } from "../../_components/car-filter";
 import PaginationToolbar from "../../_components/pagination";
 import { Badge } from "@/components/ui/badge";
+import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
 
 type SortOptions = "createdAt" | "price" | "year";
 type OrderBy = "asc" | "desc";
 
 export default function CarList() {
     const router = useRouter();
+    const { smoothPush, isPending } = useSmoothRouter();
     const searchParams = useSearchParams();
 
 
@@ -223,7 +225,7 @@ export default function CarList() {
             </div>
             {/* Add button */}
             <Button
-                onClick={() => router.push("/admin/cars/create")}
+                onClick={() => smoothPush("/admin/cars/create")}
                 className="flex items-center gap-2"
             >
                 <Plus className="h-4 w-4" /> Add New Car
@@ -262,8 +264,10 @@ export default function CarList() {
                                             onClick={(e) => {
                                                 // prevent row click when clicking inside dropdown
                                                 if ((e.target as HTMLElement).closest("button")) return;
-                                                router.push(`/admin/cars/${car.id}`);
+                                                smoothPush(`/admin/cars/${car.id}`);
                                             }}
+                                            aria-disabled={isPending}
+                                        
                                         >
                                             {/* Image */}
                                             <TableCell className="">
@@ -305,7 +309,7 @@ export default function CarList() {
                                                         e.stopPropagation();
                                                         toggleFeatured(car);
                                                     }}
-                                                    disabled={updating}
+                                                    disabled={updating || isPending}
                                                 >
                                                     {car.featured ? (
                                                         <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
@@ -335,7 +339,7 @@ export default function CarList() {
                                                         <DropdownMenuItem
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                router.push(`/cars/${car.id}`);
+                                                                smoothPush(`/cars/${car.id}`);
                                                             }}
                                                         >
                                                             <Eye className="mr-2 h-4 w-4" /> View
@@ -345,7 +349,7 @@ export default function CarList() {
                                                         {["AVAILABLE", "RESERVED", "RENTED", "PENDING", "SOLD"].map((s) => (
                                                             <DropdownMenuItem
                                                                 key={s}
-                                                                disabled={car.status === s || updating}
+                                                                disabled={car.status === s || updating || isPending}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     setStatus(car, s);
@@ -399,7 +403,7 @@ export default function CarList() {
                             <p className="text-lg font-medium">No cars found.</p>
                             <Button
                                 className="mt-4"
-                                onClick={() => router.push("/admin/cars/create")}
+                                onClick={() => smoothPush("/admin/cars/create")}
                             >
                                 Add Car
                             </Button>
@@ -418,10 +422,10 @@ export default function CarList() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                        <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting || isPending}>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                        <Button variant="destructive" onClick={handleDelete} disabled={deleting || isPending}>
                             {deleting ? "Deleting…" : "Delete"}
                         </Button>
                     </DialogFooter>

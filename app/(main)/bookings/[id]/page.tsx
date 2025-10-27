@@ -5,6 +5,7 @@ import BookingDetails from '../_components/booking-details';
 import { Car } from '@/types/car';
 import { getTestDriveInfo } from '@/actions/bookings';
 import BreadcrumbComponent from '@/components/breadcrumClient';
+import { useCurrentUser } from '@/app/hooks/use-current-user';
 
 export async function generateMetadata () {
   return {

@@ -1,7 +1,7 @@
 import { getTestDriveInfo } from "@/actions/bookings";
 import { getCarById } from "@/actions/car-listing";
+import { currentUser } from "@/actions/user";
 import { CarProvider } from "@/app/context/car-context";
-import { currentUser } from "@clerk/nextjs/server";
 
 export async function CarDataProvider({
   id,

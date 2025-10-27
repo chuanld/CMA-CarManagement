@@ -17,6 +17,7 @@ import { ApiResponse } from "@/types/api";
 import { Car } from "@/types/car";
 import { formatCurrencyVND } from "@/lib/helper";
 import { cn } from "@/lib/utils";
+import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
 
 interface CarCardProps {
   car: Car;
@@ -27,6 +28,7 @@ const CarCard = ({ car, className }: CarCardProps) => {
   const [isSaved, setIsSaved] = useState<boolean>(car.whishlisted || false);
   const { isSignedIn } = useAuth();
   const router = useRouter();
+  const { smoothPush, isPending } = useSmoothRouter();
 
   const businessType = car.carType || 'BOTH';
 
@@ -49,7 +51,7 @@ const CarCard = ({ car, className }: CarCardProps) => {
 
   const handleToggleSave = async () => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      smoothPush("/sign-in");
       return;
     }
     await fnToggleSavedCar(car.id);
@@ -176,9 +178,10 @@ const CarCard = ({ car, className }: CarCardProps) => {
                   <div className="flex justify-end">
                     <Button
                       className="w-fit btn-gold text-sm px-4 py-2"
-                      onClick={() => router.push(`/cars/${car.id}`)}
+                      onClick={() => smoothPush(`/cars/${car.id}`)}
+                      disabled={isPending}
                     >
-                      Book Now
+                      Book Now {isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                     </Button>
                   </div>
                 </Tooltip.Trigger>

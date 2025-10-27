@@ -56,17 +56,17 @@ import { ApiResponse } from '@/types/api'
 import { cn } from '@/lib/utils'
 import { AddDealerDialog } from './add-dealer-dialog'
 import Image from 'next/image'
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogTitle } from '@/components/ui/dialog'
 import { DealerActionDialog } from './dialog-action'
 import { EditDealerDialog } from './edit-dealer-dialog'
 import { toast } from 'sonner'
 import { Dealer } from '@/types/dealer'
 import { useRouter } from 'next/navigation'
-import { se } from 'date-fns/locale'
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router'
 
 
 
 export default function DealerList() {
+    const { smoothPush, isPending } = useSmoothRouter();
     const [search, setSearch] = useState('')
     const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'avgRating'>('createdAt')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -388,16 +388,16 @@ export default function DealerList() {
                                                 <DropdownMenuContent align="end">
 
                                                     <DropdownMenuItem
-                                                        disabled={loadingDealers}
+                                                        disabled={loadingDealers || isPending}
                                                         className="cursor-pointer"
-                                                        onClick={() => router.push(`/admin/dealers/${dealer.id}`)}
+                                                        onClick={() => smoothPush(`/admin/dealers/${dealer.id}`)}
                                                     >
                                                         <Forward className="w-4 h-4 mr-2" />
                                                         Go details
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={() => handleAction(dealer, 'toggle')}
-                                                        disabled={loadingDealers}
+                                                        disabled={loadingDealers || isPending}
                                                         className="cursor-pointer"
                                                     >
                                                         <Archive className="w-4 h-4 mr-2" />
@@ -406,7 +406,7 @@ export default function DealerList() {
                                                     <DropdownMenuItem
                                                         onClick={() => handleAction(dealer, 'delete')}
                                                         className="text-destructive focus:text-destructive cursor-pointer"
-                                                        disabled={loadingDealers}
+                                                        disabled={loadingDealers || isPending}
                                                     >
                                                         <Trash2 className="w-4 h-4 mr-2" />
                                                         Delete Dealer

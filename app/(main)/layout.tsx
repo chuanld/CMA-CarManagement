@@ -7,7 +7,7 @@ import { usePrefetch } from '../hooks/use-prefetch';
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
-  usePrefetch(["/cars", "/bookings", "/saved-cars","/reservations"]);
+  usePrefetch(["/cars", "/bookings", "/saved-cars","/reservations","/purchases"]);
   return (
     <div className='container mx-auto my-32 bg-background text-foreground'>
       <AnimatePresence mode="wait">

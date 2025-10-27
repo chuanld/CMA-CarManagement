@@ -20,10 +20,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Package, Calendar, DollarSign, Filter, CurrencyIcon } from 'lucide-react';
+import { Package, Calendar, DollarSign, Filter, CurrencyIcon, Loader2 } from 'lucide-react';
 import { PurchaseStatus } from '@prisma/client';
 import { formatCurrencyVND } from '@/lib/helper';
 import { useRouter } from 'next/navigation';
+import { useSmoothRouter } from '@/app/hooks/use-smooth-router';
 
 interface MyPurchasesProps {
   purchases: any[];
@@ -51,6 +52,7 @@ const statusBadge = (status: PurchaseStatus) => {
 export default function MyPurchases({ purchases }: MyPurchasesProps) {
   const [filter, setFilter] = useState<PurchaseStatus | 'ALL'>('ALL');
   const router = useRouter();
+  const {smoothPush,isPending} = useSmoothRouter();
 
   const filtered = useMemo(() => {
     if (filter === 'ALL') return purchases;
@@ -206,8 +208,9 @@ export default function MyPurchases({ purchases }: MyPurchasesProps) {
                 </p>
 
                 <Button variant="outline" size="sm" className="w-full btn-outline"
-                  onClick={() => router.push(`/purchases/${p.id}`)}>
-                  View Details
+                  onClick={() => smoothPush(`/purchases/${p.id}`)}
+                  disabled={isPending}>
+                  View Details <Loader2 className={`ml-2 w-4 h-4 animate-spin ${isPending ? 'inline-block' : 'hidden'}`} />
                 </Button>
               </CardContent>
             </Card>
