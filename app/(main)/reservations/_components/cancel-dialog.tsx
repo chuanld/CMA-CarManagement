@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { XCircle } from "lucide-react";
 import useFetch from "@/app/hooks/use-fetch";
 import { ApiResponse } from "@/types/api";
-import { cancelTestDrive } from "@/actions/test-drive";
+import { cancelBooking } from "@/actions/bookings";
 
 interface DialogCancelReservationProps {
   bookingId: string;
@@ -15,7 +15,7 @@ interface DialogCancelReservationProps {
 }
 
 export function DialogCancelReservation({ bookingId, isOpen, onClose, onCancelSuccess }: DialogCancelReservationProps) {
-  const { loading: cancelling, fetchData: cancelBookingFn, error: cancelError } = useFetch<ApiResponse<any>>(cancelTestDrive);
+  const { loading: cancelling, fetchData: cancelBookingFn, error: cancelError } = useFetch<ApiResponse<any>>(cancelBooking);
 
   const handleConfirmCancel = async () => {
     await cancelBookingFn(bookingId);

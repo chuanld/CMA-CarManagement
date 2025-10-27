@@ -12,10 +12,12 @@ type FilterOptions = {
   transmission?: string;
   color?: string;
   year?: number;
-  minPrice?: number;
-  maxPrice?: number;
   make?: string;
   model?: string;
+
+  //v3 fields
+  minPrice?: number;
+  maxPrice?: number;
 };
 
 export interface ApiQueryPayload {

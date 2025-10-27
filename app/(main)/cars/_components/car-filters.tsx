@@ -36,8 +36,7 @@ const CarFilters = ({ filters }: Props) => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    console.log(filters, "filters");
-
+    
     // Filter features
     const currentMake = searchParams.get("make") || "";
     const currentBodyType = searchParams.get("bodyType") || "";
@@ -50,6 +49,7 @@ const CarFilters = ({ filters }: Props) => {
         ? parseInt(searchParams.get("maxPrice") || "5000000")
         : filters.priceRange?.max || 5000000;
     const currentSortBy = searchParams.get("sortBy") || "newest";
+    const currentCarType = searchParams.get("carType") || "";
 
     // State
     const [make, setMake] = useState(currentMake);
@@ -61,6 +61,7 @@ const CarFilters = ({ filters }: Props) => {
         currentMaxPrice | 5000000,
     ]);
     const [sortBy, setSortBy] = useState(currentSortBy);
+    const [carType, setCarType] = useState(currentCarType);
     const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
     // Count active filters
@@ -175,7 +176,6 @@ const CarFilters = ({ filters }: Props) => {
         setIsMobileFiltersOpen(false);
     };
 
-    console.log(priceRange,'aaaa')
     return (
         <div className="flex flex-col lg:flex-row justify-between gap-6">
             {/* Mobile Filter */}
@@ -184,51 +184,50 @@ const CarFilters = ({ filters }: Props) => {
                     <SheetTrigger asChild>
                         <Button
                             variant="outline"
-                            className="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 transition-colors rounded-lg shadow-sm"
+                            className="flex items-center gap-2 px-4 py-2 btn-outline rounded-lg"
                         >
-                            <Filter className="h-5 w-5 text-gray-600" />
-                            <span className="text-sm font-medium text-gray-700">Filters</span>
+                            <Filter className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground">Filters</span>
                             {activeFiltersCount > 0 && (
-                                <Badge className="ml-2 bg-blue-600 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs">
+                                <Badge className="ml-2 badge-primary h-6 w-6">
                                     {activeFiltersCount}
                                 </Badge>
                             )}
                         </Button>
                     </SheetTrigger>
-                    <SheetContent className="w-full sm:max-w-sm overflow-y-auto bg-white p-6 rounded-t-2xl shadow-xl">
-                        <SheetHeader className="mb-6 border-b pb-4">
-                            <SheetTitle className="text-2xl font-bold text-gray-900">
+                    <SheetContent className="w-full sm:max-w-sm">
+                        <SheetHeader className="mb-6">
+                            <SheetTitle className="text-2xl font-bold text-foreground">
                                 Refine Your Search
                             </SheetTitle>
-                            <p className="text-sm text-gray-500">Customize your vehicle preferences</p>
+                            <p className="text-sm text-muted-foreground">Customize your vehicle preferences</p>
                         </SheetHeader>
                         <Select
-          value={sortBy}
-          onValueChange={(value) => {
-            setSortBy(value);
-            applyFilters();
-          }}
-        >
-          <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-all flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-800">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border border-gray-200 rounded-lg shadow-lg">
-            {[
-              { value: "newest", label: "Newest First" },
-              { value: "priceASC", label: "Price: Low to High" },
-              { value: "priceDESC", label: "Price: High to Low" },
-              { value: "mileageASC", label: "Mileage: Low to High" },
-            ].map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className="hover:bg-gray-100 text-sm py-2"
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                            value={sortBy}
+                            onValueChange={(value) => {
+                                setSortBy(value);
+                                applyFilters();
+                            }}
+                        >
+                            <SelectTrigger className="w-full select-trigger">
+                                <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card">
+                                {[
+                                    { value: "newest", label: "Newest First" },
+                                    { value: "priceASC", label: "Price: Low to High" },
+                                    { value: "priceDESC", label: "Price: High to Low" },
+                                    { value: "mileageASC", label: "Mileage: Low to High" },
+                                ].map((option) => (
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <div className="space-y-6">
                             <CarFilterControls
                                 filters={filters}
@@ -240,63 +239,31 @@ const CarFilters = ({ filters }: Props) => {
                         <SheetFooter className="mt-6 flex flex-col sm:flex-row gap-4">
                             <Button
                                 variant="outline"
-                                className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                                className="w-full sm:w-auto btn-outline"
                                 onClick={clearFilters}
                             >
-                                <X className="h-4 w-4 mr-2" /> Reset All
+                                <X className="h-4 w-4 mr-2 text-muted-foreground" /> Reset All
                             </Button>
                             <Button
-                                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                                className="w-full sm:w-auto btn-gold"
                                 onClick={applyFilters}
                             >
                                 Apply Filters
                             </Button>
                         </SheetFooter>
-                        <p className="text-xs text-gray-400 mt-4 text-center">
+                        <p className="text-xs text-muted-foreground mt-4 text-center">
                             Last updated: 04:22 PM +07, Oct 17, 2025
                         </p>
                     </SheetContent>
                 </Sheet>
             </div>
 
-            {/* Sort Selection */}
-            {/* <div className="w-full lg:w-1/4">
-        <Select
-          value={sortBy}
-          onValueChange={(value) => {
-            setSortBy(value);
-            applyFilters();
-          }}
-        >
-          <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-all flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-800">
-            <SelectValue placeholder="Sort by" />
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border border-gray-200 rounded-lg shadow-lg">
-            {[
-              { value: "newest", label: "Newest First" },
-              { value: "priceASC", label: "Price: Low to High" },
-              { value: "priceDESC", label: "Price: High to Low" },
-              { value: "mileageASC", label: "Mileage: Low to High" },
-            ].map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-                className="hover:bg-gray-100 text-sm py-2"
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div> */}
-
             {/* Desktop Filter */}
-            <div className="hidden lg:block w-full ">
-                <Card className="border border-gray-200 rounded-xl shadow-md bg-white/95 backdrop-blur-sm sticky top-24">
-                    <CardHeader className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 flex justify-between items-center rounded-t-xl">
-                        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-                            <Sliders className="h-5 w-5 mr-2 text-blue-600" />
+            <div className="hidden lg:block w-full">
+                <Card className="card rounded-2xl sticky top-24 bg-card">
+                    <CardHeader className="card-header flex justify-between items-center rounded-t-2xl">
+                        <CardTitle className="text-lg font-semibold text-foreground flex items-center">
+                            <Sliders className="h-5 w-5 mr-2 text-accent2" />
                             Vehicle Filters
                         </CardTitle>
                         {activeFiltersCount > 0 && (
@@ -305,13 +272,13 @@ const CarFilters = ({ filters }: Props) => {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-gray-600 hover:text-red-600 transition-colors"
+                                        className="text-muted-foreground hover:text-destructive"
                                         onClick={clearFilters}
                                     >
-                                        <X className="h-4 w-4 mr-1" /> Clear All
+                                        <X className="h-4 w-4 mr-1 text-muted-foreground" /> Clear All
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent className="bg-gray-900 text-white">
+                                <TooltipContent>
                                     <p>Reset all applied filters</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -325,11 +292,10 @@ const CarFilters = ({ filters }: Props) => {
                                 applyFilters();
                             }}
                         >
-                            <SelectTrigger className="w-full bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-all flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-800">
+                            <SelectTrigger className="w-full select-trigger">
                                 <SelectValue placeholder="Sort by" />
-                                {/* <ChevronDown className="h-4 w-4 text-gray-400" /> */}
                             </SelectTrigger>
-                            <SelectContent className="bg-white border border-gray-200 rounded-lg shadow-lg">
+                            <SelectContent className="bg-card">
                                 {[
                                     { value: "newest", label: "Newest First" },
                                     { value: "priceAsc", label: "Price: Low to High" },
@@ -339,7 +305,6 @@ const CarFilters = ({ filters }: Props) => {
                                     <SelectItem
                                         key={option.value}
                                         value={option.value}
-                                        className="hover:bg-gray-100 text-sm py-2"
                                     >
                                         {option.label}
                                     </SelectItem>
@@ -352,17 +317,17 @@ const CarFilters = ({ filters }: Props) => {
                             onFilterChange={handleFilterChange}
                             onClearFilter={handleClearFilter}
                         />
-                        <Separator className="bg-gray-200" />
-                        <div className="flex items-center justify-between text-sm text-gray-500">
+                        <Separator />
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <span>Price Range: {formatCurrencyVND(priceRange[0] || 0)} - {formatCurrencyVND(priceRange[1] || 5000000)}</span>
                             <span className="flex items-center">
-                                <Clock className="h-4 w-4 mr-1" /> Updated: 04:22 PM +07, Oct 17, 2025
+                                <Clock className="h-4 w-4 mr-1 text-muted-foreground" /> Updated: 04:22 PM +07, Oct 17, 2025
                             </span>
                         </div>
                     </CardContent>
-                    <CardFooter className="p-4 border-t border-gray-200">
+                    <CardFooter className="p-4">
                         <Button
-                            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-md transition-all"
+                            className="w-full btn-gold"
                             onClick={applyFilters}
                         >
                             Apply Filters

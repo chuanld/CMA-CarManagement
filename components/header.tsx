@@ -1,23 +1,23 @@
 'use client'
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from './ui/button'
-import { Heart, CarFront, Layout, ArrowLeft, Menu, X } from 'lucide-react'
-import Link from 'next/link'
-import { SignedIn, SignedOut, SignInButton, SignUp, SignUpButton, UserButton, useUser } from '@clerk/nextjs'
+import { Heart, CarFront, Menu, X } from 'lucide-react'
 import Image from 'next/image'
-import * as Tooltip from '@radix-ui/react-tooltip'
-import { User } from '@/types/user'
+import { UserButton, useUser } from '@clerk/nextjs'
+import { ThemeToggle } from './theme-switcher'
+import { useRouter } from 'next/navigation'
 
 interface HeaderProps {
   isAdminPage?: boolean
-  user?: any
 }
 
-const Header = ({ isAdminPage = false, user }: HeaderProps) => {
+const Header = ({ isAdminPage = false }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  // const { user } = useUser() // Client-side user data
+
+  const { user } = useUser()
   const isAdmin = user?.publicMetadata?.role === 'ADMIN'
+
+  const router = useRouter()
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
@@ -25,248 +25,142 @@ const Header = ({ isAdminPage = false, user }: HeaderProps) => {
 
   return (
     <motion.header
-      className="fixed top-0 w-full bg-bg-cma/90 backdrop-blur-md z-50 shadow-lg"
+      className="fixed top-0 w-full header bg-background/95 backdrop-blur-md z-50 border-b border-border shadow-glow"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-2 sm:px-4 py-2 flex items-center justify-between">
         {/* Logo */}
-        <Link href={isAdminPage ? '/admin' : '/'}>
+        <motion.div
+          className="relative flex items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            repeatDelay: 4,
+          }}
+          onClick={() => router.push('/')}
+
+        >
+          <motion.div
+            className="absolute top-3 h-15 inset-0 rounded-4xl bg-gradient-to-r dark:from-accent/30 dark:via-accent/50 dark:to-accent/30 blur-lg
+                      from-accent2/0 via-accent2/30 to-accent2/0"
+            animate={{
+              x: ['-100%', '100%'],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              repeatDelay: 4,
+            }}
+          />
           <Image
-            src="/chuan_cma.png"
-            alt="Car MarketAI Logo"
-            width={200}
-            height={60}
-            className="h-12 w-auto object-contain"
+            src={`${isAdminPage ? '/chuan_DP.png' : '/chuan_cmas.png'}`}
+            alt="Car Marketplace AI System"
+            width={250}
+            height={50}
+            className=" relative z-10"
+            quality={90}
             priority
           />
-        </Link>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[140%] h-[45%]
+  bg-accent/10 blur-3xl rounded-full"></div>
+        </motion.div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-4">
-          {isAdminPage ? (
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <Link href="/">
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-bg-cma hover:text-white transition-colors rounded-lg"
-                    >
-                      <ArrowLeft size={18} />
-                      <span>Back to App</span>
-                    </Button>
-                  </Link>
-                </Tooltip.Trigger>
-                <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                  Return to the main application
-                  <Tooltip.Arrow className="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Root>
-            </Tooltip.Provider>
-          ) : (
-            <SignedIn>
-              {!isAdmin && (
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                      <Link href="/reservations">
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2  text-black-500 hover:bg-bg-cma hover:text-white transition-colors rounded-lg"
-                        >
-                          <CarFront size={18} />
-                          <span>My Reservations</span>
-                        </Button>
-                      </Link>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                      View your car reservations
-                      <Tooltip.Arrow className="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              )}
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <Link href="/saved-cars">
-                      <Button
-                        className="flex items-center gap-2 bg-bg-cma hover:bg-bg-cma text-white rounded-lg transition-colors"
-                      >
-                        <Heart size={18} />
-                        <span>Saved Cars</span>
-                      </Button>
-                    </Link>
-                  </Tooltip.Trigger>
-                  <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                    View your saved cars
-                    <Tooltip.Arrow className="fill-gray-900" />
-                  </Tooltip.Content>
-                </Tooltip.Root>
-              </Tooltip.Provider>
-              {isAdmin && (
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                      <Link href="/admin">
-                        <Button
-                          variant="outline"
-                          className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
-                        >
-                          <Layout size={18} />
-                          <span>Admin Portal</span>
-                        </Button>
-                      </Link>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                      Access the admin dashboard
-                      <Tooltip.Arrow className="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              )}
-            </SignedIn>
-          )}
+        <div className="hidden md:flex items-center space-x-3">
+          {/* Reservations */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
+            onClick={() => router.push('/reservations')}
+          >
+            <CarFront size={18} className="group-hover:rotate-12 transition-transform" />
+            <span>My Reservations</span>
+            <motion.div
+              className="absolute inset-0 rounded-full bg-accent/20 blur opacity-0 group-hover:opacity-100"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+            />
+          </motion.button>
 
-          <SignedOut>
-            {!isAdminPage && (
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <div>
-                      <SignInButton forceRedirectUrl="/">
-                      <Button
-                        variant="outline"
-                        className="border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
-                      >
-                        Login
-                      </Button>
-                    </SignInButton>
-                    <SignUpButton forceRedirectUrl="/">
-                      <Button
-                        variant="outline"
-                        className="ml-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white transition-colors rounded-lg"
-                      >
-                        Sign Up
-                      </Button>
-                    </SignUpButton>
-                    </div>
-                    
-                  </Tooltip.Trigger>
-                  <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                    Sign in to your account
-                    <Tooltip.Arrow className="fill-gray-900" />
-                  </Tooltip.Content>
-                </Tooltip.Root>
-              </Tooltip.Provider>
-            )}
-          </SignedOut>
+          {/* Saved Cars */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            className="group relative flex items-center gap-2 px-6 py-2.5 bg-accent/70 text-accent-foreground font-semibold rounded-full shadow-glow transition-all duration-300 hover:bg-accent/95 hover:shadow-glow"
+            onClick={() => router.push('/saved-cars')}
+          >
+            <Heart size={18} className="group-hover:scale-110 transition-transform fill-current" />
+            <span className="text-foreground">Saved Cars</span>
+          </motion.button>
 
-          <SignedIn>
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <UserButton
-                    appearance={{
-                      elements: {
-                        avatarBox: 'w-10 h-10 rounded-full border-2 border-gray-300',
-                      },
-                    }}
-                  />
-                </Tooltip.Trigger>
-                <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl border border-blue-200/20">
-                  Manage your profile
-                  <Tooltip.Arrow className="fill-gray-900" />
-                </Tooltip.Content>
-              </Tooltip.Root>
-            </Tooltip.Provider>
-          </SignedIn>
+          {/* UserButton */}
+          <motion.div whileHover={{ scale: 1.10 }} className="ml-4">
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: 'w-10 h-10 bg-primary border border-accent rounded-full flex items-center justify-center',
+                },
+              }}
+            />
+          </motion.div>
+          <ThemeToggle /> {/* ✅ Dùng ThemeSwitcher */}
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="md:hidden">
-          <Button
-            variant="ghost"
-            className="text-gray-200 hover:text-blue-600"
-            onClick={toggleMobileMenu}
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        </div>
-      </nav>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleMobileMenu}
+          className="md:hidden p-2 rounded-full bg-accent/10 text-accent hover:bg-accent/20 transition-all duration-200"
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </motion.button>
+      </div>
 
       {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            className="md:hidden bg-color-cma/95 backdrop-blur-md border-t border-gray-700"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
+            className="md:hidden bg-background/95 border-t border-border overflow-hidden" // ✅ THAY ĐỔI
           >
-            <div className="flex flex-col items-center py-4 space-y-4">
-              {isAdminPage ? (
-                <Link href="/">
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
-                  >
-                    <ArrowLeft size={18} />
-                    <span>Back to App</span>
-                  </Button>
-                </Link>
-              ) : (
-                <SignedIn>
-                  {!isAdmin && (
-                    <Link href="/reservations">
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
-                      >
-                        <CarFront size={18} />
-                        <span>My Reservations</span>
-                      </Button>
-                    </Link>
-                  )}
-                  <Link href="/saved-cars">
-                    <Button
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white w-full max-w-xs rounded-lg"
-                    >
-                      <Heart size={18} />
-                      <span>Saved Cars</span>
-                    </Button>
-                  </Link>
-                  {isAdmin && (
-                    <Link href="/admin">
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
-                      >
-                        <Layout size={18} />
-                        <span>Admin Portal</span>
-                      </Button>
-                    </Link>
-                  )}
-                </SignedIn>
-              )}
+            <div className="px-4 py-4 space-y-3">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center gap-3 px-5 py-3 border border-accent/70 text-accent font-medium rounded-xl hover:bg-accent/10 transition-all"
+              >
+                <CarFront size={20} />
+                My Reservations
+              </motion.button>
 
-              <SignedOut>
-                {!isAdminPage && (
-                  <SignInButton forceRedirectUrl="/">
-                    <Button
-                      variant="outline"
-                      className="border-gray-300 text-gray-200 hover:bg-blue-600 hover:text-white w-full max-w-xs rounded-lg"
-                    >
-                      Login
-                    </Button>
-                  </SignInButton>
-                )}
-              </SignedOut>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center gap-3 px-5 py-3 bg-accent text-accent-foreground font-semibold rounded-xl shadow-glow hover:bg-accent/95 transition-all"
+              >
+                <Heart size={20} />
+                Saved Cars
+              </motion.button>
+
+              <motion.div
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center gap-3 px-5 py-3 bg-accent/15 border border-accent/70 rounded-xl cursor-pointer"
+              >
+                <div className="w-10 h-10 bg-accent/25 border border-accent/70 rounded-full flex items-center justify-center">
+                  <span className="text-accent font-bold">U</span>
+                </div>
+                Profile
+              </motion.div>
             </div>
+
           </motion.div>
         )}
       </AnimatePresence>

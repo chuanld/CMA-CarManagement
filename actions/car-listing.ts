@@ -1,60 +1,51 @@
 "use server";
-import { serializeCarData, serializeDealerData, serializeWorkingHours } from "@/lib/helper";
+
 import { db } from "@/lib/prisma";
-import { Car } from "@/types/car";
-import { WorkingHour } from "@/types/settings";
-import { TestDriveBooking } from "@/types/user";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { includes, success } from "zod";
+import {
+  serializeBooking,
+  serializeCarData,
+  serializeDealerData,
+  serializeWorkingHours,
+} from "@/lib/helper";
 
 export async function getCarFilters() {
   try {
+    const availableCars = {
+      where: { status: "AVAILABLE" as const },
+    };
+
     const makes = await db.car.findMany({
-      where: { status: "AVAILABLE" },
+      ...availableCars,
       distinct: ["make"],
-      select: {
-        make: true,
-      },
-      orderBy: {
-        make: "asc",
-      },
+      select: { make: true },
+      orderBy: { make: "asc" },
     });
 
     const bodyTypes = await db.car.findMany({
-      where: { status: "AVAILABLE" },
+      ...availableCars,
       distinct: ["bodyType"],
-      select: {
-        bodyType: true,
-      },
-      orderBy: {
-        bodyType: "asc",
-      },
+      select: { bodyType: true },
+      orderBy: { bodyType: "asc" },
     });
 
     const fuelTypes = await db.car.findMany({
-      where: { status: "AVAILABLE" },
+      ...availableCars,
       distinct: ["fuelType"],
-      select: {
-        fuelType: true,
-      },
-      orderBy: {
-        fuelType: "asc",
-      },
+      select: { fuelType: true },
+      orderBy: { fuelType: "asc" },
     });
 
     const transmissions = await db.car.findMany({
-      where: { status: "AVAILABLE" },
+      ...availableCars,
       distinct: ["transmission"],
-      select: {
-        transmission: true,
-      },
-      orderBy: {
-        transmission: "asc",
-      },
+      select: { transmission: true },
+      orderBy: { transmission: "asc" },
     });
 
-    const priceRanges = await db.car.aggregate({
+    // ✅ Vì price nằm trong bảng SaleInfo
+    const priceRanges = await db.saleInfo.aggregate({
       where: { status: "AVAILABLE" },
       _min: { price: true },
       _max: { price: true },
@@ -63,10 +54,10 @@ export async function getCarFilters() {
     return {
       success: true,
       data: {
-        makes: makes.map((item) => item.make),
-        bodyTypes: bodyTypes.map((item) => item.bodyType),
-        fuelTypes: fuelTypes.map((item) => item.fuelType),
-        transmissions: transmissions.map((item) => item.transmission),
+        makes: makes.map((m) => m.make),
+        bodyTypes: bodyTypes.map((b) => b.bodyType),
+        fuelTypes: fuelTypes.map((f) => f.fuelType),
+        transmissions: transmissions.map((t) => t.transmission),
         priceRanges: {
           min: priceRanges._min.price
             ? parseFloat(priceRanges._min.price.toString())
@@ -78,11 +69,8 @@ export async function getCarFilters() {
       },
     };
   } catch (err: unknown) {
-    console.error(err instanceof Error ? err.message : "Unexpected error");
-    return {
-      success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
-    };
+    console.error(err);
+    return { success: false, error: err };
   }
 }
 
@@ -93,55 +81,49 @@ export async function getCars({
   fuelType = "",
   transmission = "",
   minPrice = 0,
-  maxPrice = 100000,
+  maxPrice = 1000000000,
   sortBy = "newest",
   page = 1,
   limit = 10,
 }) {
   try {
     const { userId } = await auth();
-    let dbUser = null;
+    const dbUser = userId
+      ? await db.user.findUnique({ where: { clerkUserId: userId } })
+      : null;
 
-    if (userId) {
-      dbUser = await db.user.findUnique({
-        where: { clerkUserId: userId },
-      });
-    }
-
-    let whereClause: any = {
+    const where: any = {
       status: "AVAILABLE",
+      OR: search
+        ? [
+            { make: { contains: search, mode: "insensitive" } },
+            { model: { contains: search, mode: "insensitive" } },
+            { description: { contains: search, mode: "insensitive" } },
+          ]
+        : undefined,
     };
 
-    if (search) {
-      whereClause.OR = [
-        { make: { contains: search, mode: "insensitive" } },
-        { model: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    if (make) whereClause.make = { equals: make, mode: "insensitive" };
-    if (bodyType)
-      whereClause.bodyType = { equals: bodyType, mode: "insensitive" };
-    if (fuelType)
-      whereClause.fuelType = { equals: fuelType, mode: "insensitive" };
+    if (make) where.make = { equals: make, mode: "insensitive" };
+    if (bodyType) where.bodyType = { equals: bodyType, mode: "insensitive" };
+    if (fuelType) where.fuelType = { equals: fuelType, mode: "insensitive" };
     if (transmission)
-      whereClause.transmission = { equals: transmission, mode: "insensitive" };
+      where.transmission = { equals: transmission, mode: "insensitive" };
 
-    whereClause.price = {
-      gte: parseFloat(minPrice as any) || 0,
+    // Giá nằm trong bảng SaleInfo
+    const priceFilter: any = {
+      gte: minPrice || 0,
+      lte: maxPrice || 1000000000,
     };
-    if (maxPrice && maxPrice < 100000)
-      whereClause.price.lte = parseFloat(maxPrice as any);
 
     const skip = (page - 1) * limit;
     let orderBy: any = {};
+
     switch (sortBy) {
       case "priceAsc":
-        orderBy = { price: "asc" };
+        orderBy = { saleInfo: { price: "asc" } };
         break;
       case "priceDesc":
-        orderBy = { price: "desc" };
+        orderBy = { saleInfo: { price: "desc" } };
         break;
       case "oldest":
         orderBy = { createdAt: "asc" };
@@ -152,448 +134,179 @@ export async function getCars({
         break;
     }
 
-    const totalCars = await db.car.count({ where: whereClause });
-    //excute query
+    const total = await db.car.count({ where });
+
     const cars = await db.car.findMany({
-      where: whereClause,
+      where,
       orderBy,
       skip,
       take: limit,
+      include: { saleInfo: true, rentInfo: true },
     });
 
-    let whishlisted = new Set();
+    let wishlisted = new Set();
     if (dbUser) {
-      const savedCars = await db.userSavedCar.findMany({
+      const saved = await db.userSavedCar.findMany({
         where: { userId: dbUser.id },
         select: { carId: true },
       });
-      whishlisted = new Set(savedCars.map((save: any) => save.carId));
+      wishlisted = new Set(saved.map((s) => s.carId));
     }
 
-    const serializedCars = cars.map((car) =>
-      serializeCarData(car, whishlisted.has(car.id))
+    const serialized = cars.map((car) =>
+      serializeCarData(car, wishlisted.has(car.id))
     );
 
     return {
       success: true,
-      data: serializedCars,
+      data: serialized,
       pagination: {
-        total: totalCars,
+        total,
         page,
         limit,
-        totalPages: Math.ceil(totalCars / limit),
+        totalPages: Math.ceil(total / limit),
       },
     };
   } catch (err: unknown) {
-    console.error(err instanceof Error ? err.message : "Unexpected error");
-    return {
-      success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
-    };
+    console.error(err);
+    return { success: false, error: err };
   }
 }
 
 export async function toggleSavedCar(carId: string) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    if (!userId) throw new Error("Unauthorized");
 
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
+    const user = await db.user.findUnique({ where: { clerkUserId: userId } });
+    if (!user) throw new Error("User not found");
+
+    const existing = await db.userSavedCar.findUnique({
+      where: { userId_carId: { userId: user.id, carId } },
     });
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const car = await db.car.findUnique({
-      where: { id: carId },
-    });
-    if (!car) {
-      return { success: false, error: new Error("Car not found") };
-    }
-
-    const existingSavedCar = await db.userSavedCar.findUnique({
-      where: {
-        userId_carId: { userId: user.id, carId },
-      },
-    });
-    if (existingSavedCar) {
-      // Remove from saved
+    if (existing) {
       await db.userSavedCar.delete({
         where: { userId_carId: { userId: user.id, carId } },
       });
       return { success: true, saved: false, message: "Removed from favorites" };
     }
 
-    // Add to saved
-    await db.userSavedCar.create({
-      data: {
-        userId: user.id,
-        carId,
-      },
-    });
+    await db.userSavedCar.create({ data: { userId: user.id, carId } });
     revalidatePath("/saved-cars");
     return { success: true, saved: true, message: "Added to favorites" };
-  } catch (err: unknown) {
-    console.error(err instanceof Error ? err.message : "Unexpected error");
-    return {
-      success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
-    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: err };
   }
 }
 
 export async function getSavedCars() {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    if (!userId) throw new Error("Unauthorized");
 
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
-    });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const user = await db.user.findUnique({ where: { clerkUserId: userId } });
+    if (!user) throw new Error("User not found");
 
     const savedCars = await db.userSavedCar.findMany({
       where: { userId: user.id },
-      include: { car: true },
+      include: { car: { include: { saleInfo: true } } },
       orderBy: { savedAt: "desc" },
     });
 
-    const savedCarSerialized = savedCars.map((car) =>
-      serializeCarData(car.car)
-    );
+    const serialized = savedCars.map((s) => serializeCarData(s.car));
 
-    return {
-      success: true,
-      data: savedCarSerialized,
-    };
-  } catch (err: unknown) {
-    console.error(err instanceof Error ? err.message : "Unexpected error");
-    return {
-      success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
-    };
+    return { success: true, data: serialized };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: err };
   }
 }
 
-
-// export async function getCarById(carId: string) {
-//   try {
-//     const {userId} = await auth();
-//     let dbUser = null;
-
-//     if (userId) {
-//       dbUser = await db.user.findUnique({
-//         where: { clerkUserId: userId },
-//       });
-//     }
-
-//     const car = await db.car.findUnique({
-//       where: { id: carId },
-//     });
-//     console.log(car)
-//     if (!car) {
-//       return { success: false, error: new Error("Car not found") };
-//     }
-//     let whishlisted = false;
-//     if (dbUser) {
-//       const existingSavedCar = await db.userSavedCar.findUnique({
-//         where: {
-//           userId_carId: { userId: dbUser.id, carId },
-//         },
-//       });
-//       whishlisted = !!existingSavedCar;
-//     }
-
-//     const existingTestDriveBooking = await db.testDriveBooking.findMany({
-//       where: {
-//         userId: dbUser?.id || "",
-//         carId,
-//         status: { in: ["PENDING", "CONFIRMED", "COMPLETED"] },
-//       },
-//       include: {user: true},
-//       orderBy: { bookingDate: "desc" },
-//     });
-//     let userTestDrives: any[] = [];
-
-//     if(existingTestDriveBooking && existingTestDriveBooking.length > 0){
-//       userTestDrives = existingTestDriveBooking.map((booking) => ({
-//         ...booking,
-//         bookingDate: booking.bookingDate.toISOString(),
-//         user: {
-//           email: booking.user?.email || "N/A",
-//           name: booking.user?.name || "N/A",
-//           phone: booking.user?.phone || "N/A",
-//         }
-//       }));
-//     }
-
-//     // if(existingTestDriveBooking){
-//     //   userTestDrive = {
-//     //     id: existingTestDriveBooking.id,
-//     //     carId: existingTestDriveBooking.carId,
-//     //     userId: existingTestDriveBooking.userId,
-//     //     bookingDate: existingTestDriveBooking.bookingDate.toISOString(),
-//     //     status: existingTestDriveBooking.status,
-//     //   };
-//     // }
-
-//     const dealerShip = await db.dealershipInfo.findFirst({
-//       include: {workingHours:true}
-//     });
-//     const serializedCar = serializeCarData(car, whishlisted);
-
-//     // return {
-//     //   success: true,
-//     //   data: serializedCar,
-//     // };
-//     return {
-//       success: true,
-//       data: {
-//         ...serializedCar,
-//         testDriverInfo: {
-//           userTestDrives,
-//           dealerShip: dealerShip
-//             ? {
-//                 ...dealerShip,
-//                 createdAt: dealerShip.createdAt.toISOString(),
-//                 updatedAt: dealerShip.updatedAt.toISOString(),
-//                 workingHours: dealerShip.workingHours.map((wh: WorkingHour) => ({
-//                   ...wh,
-//                   createdAt: wh.createdAt.toISOString(),
-//                   updatedAt: wh.updatedAt.toISOString(),
-//                 }))
-//               }
-//             : null,
-//         },
-//       },
-//     }
-//   } catch (err: unknown) {
-//     console.error(err instanceof Error ? err.message : "Unexpected error");
-//     return {
-//       success: false,
-//       error: err instanceof Error ? err : new Error(String(err)),
-//     };
-//   }
-// }
-
 export async function getCarById(carId: string) {
   try {
-    // const { userId } = await auth();
-
-    // // 1️⃣ Lấy user nếu đã đăng nhập
-    // const dbUser = userId
-    //   ? await db.user.findUnique({ where: { clerkUserId: userId } })
-    //   : null;
-
-    // // 2️⃣ Lấy thông tin xe kèm dealer, review, test drive
-    // const car = await db.car.findUnique({
-    //   where: { id: carId },
-    //   include: {
-    //     dealer: {
-    //       include: { workingHours: true },
-    //     },
-    //     reviews: {
-    //       include: { user: true },
-    //       orderBy: { createdAt: "desc" },
-    //     },
-    //     testDriveBookings: {
-    //       include: { user: true}
-    //     }
-    //   },
-    // });
-    // console.log(car)
-
-    // if (!car) {
-    //   return { success: false, error: new Error("Car not found") };
-    // }
-
-    // // 3️⃣ Kiểm tra wishlist
-    // const wishlisted = dbUser
-    //   ? !!(await db.userSavedCar.findUnique({
-    //       where: { userId_carId: { userId: dbUser.id, carId } },
-    //     }))
-    //   : false;
-
-    // // 4️⃣ Lấy danh sách test drive của user
-    // let userTestDrives: any[] = [];
-    // if (dbUser) {
-    //   const testDrives = await db.testDriveBooking.findMany({
-    //     where: {
-    //       userId: dbUser.id,
-    //       carId,
-    //       status: { in: ["PENDING", "CONFIRMED", "COMPLETED"] },
-    //     },
-    //     include: { user: true },
-    //     orderBy: { bookingDate: "desc" },
-    //   });
-
-    //   userTestDrives = testDrives.map((test) => ({
-    //     ...test,
-    //     bookingDate: test.bookingDate.toISOString(),
-    //     createdAt: test.createdAt.toISOString(),
-    //     updatedAt: test.updatedAt.toISOString(),
-    //     user: {
-    //       name: test.user?.name ?? "N/A",
-    //       email: test.user?.email ?? "N/A",
-    //       phone: test.user?.phone ?? "N/A",
-    //     },
-    //   }));
-    // }
-    // const serialWorkingHours = car.dealer?.workingHours.map((wh)=>serializeDealerData(wh))
-
-    // const dealer = car.dealer
-    //   ? {
-    //       ...car.dealer,
-    //       createdAt: car.dealer.createdAt.toISOString(),
-    //       updatedAt: car.dealer.updatedAt.toISOString(),
-    //       workingHours: serialWorkingHours
-    //     }
-    //   : null;
-
-    // // 6️⃣ Serialize dữ liệu review
-    // const reviews = car.reviews.map((r) => ({
-    //   id: r.id,
-    //   rating: r.rating,
-    //   comment: r.comment,
-    //   createdAt: r.createdAt.toISOString(),
-    //   updatedAt: r.updatedAt.toISOString(),
-    //   user: {
-    //     name: r.user?.name ?? "Anonymous",
-    //     email: r.user?.email ?? "",
-    //     imageUrl: r.user?.imageUrl ?? "",
-    //   },
-    // }));
-
-    // // 7️⃣ Chuẩn hóa dữ liệu xe
-    // const serializedCar = serializeCarData(car, wishlisted);
-
-    // // 8️⃣ Trả dữ liệu cuối cùng
-    // return {
-    //   success: true,
-    //   data: {
-    //     ...serializedCar,
-    //     dealer,
-    //     reviews,
-    //     testDriverBookings: userTestDrives,
-    //     upcomingBookings
-    //   },
-    // };
-    const {userId} = await auth();
-
+    const { userId } = await auth();
     const dbUser = userId
-      ? await db.user.findUnique({where: {clerkUserId: userId}})
+      ? await db.user.findUnique({ where: { clerkUserId: userId } })
       : null;
 
+    const now = new Date();
     const car = await db.car.findUnique({
-      where: {id: carId},
+      where: { id: carId },
       include: {
-        dealer: { include: {workingHours: true}},
+        dealer: { include: { workingHours: true } },
+        saleInfo: true,
+        rentInfo: true,
         reviews: {
-          include: {user:true},
-          orderBy: {createdAt: 'desc'}
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
         },
-        testDriveBookings: {
-          include: { user: true},
-        }
-      }
-    })
-
-    if (!car) {
-      return { success: false, error: new Error("Car not found") };
-    }
-
-    const whishlisted = dbUser
-      ? !!(await db.userSavedCar.findUnique({
-        where: {userId_carId: {userId: dbUser.id, carId}}
-      }))
-      : false
-    
-    let userTestDrives: any[]=[];
-    if(dbUser) {
-      const testDrives = await db.testDriveBooking.findMany({
-        where: {
-          userId: dbUser.id,
-          carId,
-          status: { in: ["PENDING", "CONFIRMED","COMPLETED"]}
+        bookings: {
+          where: {
+            status: { in: ["PENDING", "CONFIRMED"] },
+            endTime: { gte: now },
+          },
+          select: {
+            id: true,
+            bookingDate: true,
+            startTime: true,
+            endTime: true,
+            bookingType: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            notes: true,
+            totalPrice: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: [{ bookingDate: "asc" }, { startTime: "asc" }],
         },
-        include: { user: true},
-        orderBy: {bookingDate: 'desc'}
-      })
-      userTestDrives = testDrives.map((testDrive)=>({
-        ...testDrive,
-        bookingDate: testDrive.bookingDate.toISOString(),
-        createdAt: testDrive.createdAt.toISOString(),
-        updatedAt: testDrive.updatedAt.toISOString(),
-        user: {
-          name:testDrive.user?.name ?? 'N/A',
-          email: testDrive.user?.email ?? 'N/A',
-          phone: testDrive.user?.phone ?? 'N/A'
-        }
-      }))
-    }
-
-    const today = new Date();
-    today.setHours(0,0,0,0)
-    const upcomingRaws = await db.testDriveBooking.findMany({
-      where: {
-        carId,
-        status: {in:["PENDING","CONFIRMED"]},
-        bookingDate: {gte: today}
       },
-      include: {user:true},
-      orderBy: [{bookingDate: 'asc'},{startTime: 'asc'}],
-    })
+    });
 
-    const upcomingBookings = upcomingRaws.map((book)=>({
-      id: book.id,
-      carId: book.carId,
-      userId: book.userId,
-      bookingDate: book.bookingDate.toISOString(),
-      startTime: book.startTime,
-      endTime: book.endTime,
-      status: book.status,
-      notes: book.notes,
-      createdAt: book.createdAt.toISOString(),
-      updatedAt: book.updatedAt.toISOString(),
-      user: {
-        name: book.user?.name ?? 'N/A',
-        email: book.user?.email ?? 'N/A',
-        phone: book.user?.phone ?? 'N/A',
-      }
-    }))
+    if (!car) return { success: false, error: new Error("Car not found") };
 
-    const isBookedByOther = upcomingRaws.length > 0 && upcomingRaws.some((book)=> book.userId !== dbUser?.id)
+    const wishlisted = dbUser
+      ? !!(await db.userSavedCar.findUnique({
+          where: { userId_carId: { userId: dbUser.id, carId } },
+        }))
+      : false;
 
-    const serializedWorkingHours = car.dealer?.workingHours.map((wh: any) => serializeWorkingHours(wh))
-    
-    const dealer = car.dealer ? {
-      ...car.dealer,
-      createdAt: car.dealer.createdAt.toISOString(),
-      updatedAt: car.dealer.updatedAt.toISOString(),
-      workingHours: serializedWorkingHours
-    } : null;
+    const dealer = car.dealer
+      ? {
+          ...car.dealer,
+          createdAt: car.dealer.createdAt.toISOString(),
+          updatedAt: car.dealer.updatedAt.toISOString(),
+          workingHours: car.dealer.workingHours.map((wh) =>
+            serializeWorkingHours(wh)
+          ),
+        }
+      : null;
 
-    const reviews = car.reviews.map((r)=>({
-      ...r,
+    const reviews = car.reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
       user: {
-        name: r.user?.name ?? 'N/A',
-        email: r.user?.email ?? 'N/A',
-        phone: r.user?.phone ?? 'N/A',
-      }
+        name: r.user?.name ?? "Anonymous",
+        email: r.user?.email ?? "",
+        phone: r.user?.phone ?? "",
+      },
     }));
 
-    const serializedCar = serializeCarData(car, whishlisted);
+    const testDriveBookings = car.bookings
+      .filter((book) => book.bookingType === "TEST_DRIVE")
+      .map((b: any) => serializeBooking(b));
+    const rentalBookings = car.bookings
+      .filter((book) => book.bookingType === "RENTAL")
+      .map((b: any) => serializeBooking(b));
+
+    const serializedCar = serializeCarData(car, wishlisted);
 
     return {
       success: true,
@@ -601,17 +314,14 @@ export async function getCarById(carId: string) {
         ...serializedCar,
         dealer,
         reviews,
-        testDriveBookings: userTestDrives,
-        isBookedByOther,
-        upcomingBookings
-      }
-    }
-
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : "Unexpected error");
-    return {
-      success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
+        upcomingBookings: {
+          testDrives: testDriveBookings,
+          rentals: rentalBookings,
+        },
+      },
     };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: err };
   }
 }

@@ -16,6 +16,7 @@ import useFetch from "@/app/hooks/use-fetch";
 import { ApiResponse } from "@/types/api";
 import { Car } from "@/types/car";
 import { formatCurrencyVND } from "@/lib/helper";
+import { cn } from "@/lib/utils";
 
 interface CarCardProps {
   car: Car;
@@ -26,6 +27,8 @@ const CarCard = ({ car, className }: CarCardProps) => {
   const [isSaved, setIsSaved] = useState<boolean>(car.whishlisted || false);
   const { isSignedIn } = useAuth();
   const router = useRouter();
+
+  const businessType = car.carType || 'BOTH';
 
   const {
     loading: isSaving,
@@ -54,31 +57,47 @@ const CarCard = ({ car, className }: CarCardProps) => {
 
   return (
     <motion.div
-      className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-lg transition-all duration-300 ${className}`}
+      className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-fit"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       whileHover={{ scale: 1.02 }}
     >
-      <Card className="border-0">
+      <Card className="border-0 h-full">
         {/* Image Block */}
-        <div className="relative h-56 w-full">
+        <div className="relative h-40 w-full">
           {car.images && car.images.length > 0 ? (
             <Image
               src={car.images[0]}
               alt={`${car.make} ${car.model}`}
               fill
-              className="object-cover rounded-t-xl transition-transform duration-300 hover:scale-105"
+              className="object-cover rounded-t-2xl transition-transform duration-300 hover:scale-105"
+              quality={90}
+              priority
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-t-xl">
-              <span className="text-gray-500 text-sm font-medium">No Image Available</span>
+            <div className="w-full h-full bg-muted flex items-center justify-center rounded-t-2xl">
+              <span className="text-muted-foreground text-sm font-medium">No Image Available</span>
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent rounded-b-xl flex items-end p-3">
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent rounded-b-2xl flex items-end p-3">
             <p className="text-white text-sm font-semibold truncate">
               {car.make} {car.model} {car.year}
             </p>
+            <Badge
+              className={cn(
+                "absolute top-2 left-2 px-2.5 py-1 text-xs font-medium rounded-md",
+                businessType === "SALE" && "bg-badge-isSale/70 text-badge-isSale-foreground border-badge-isSale",
+                businessType === "RENT" && "bg-badge-isRent/70 text-badge-isRent-foreground border-badge-isRent",
+                businessType === "BOTH" && "bg-badge-both/70 text-badge-both-foreground border-badge-both "
+              )}
+            >
+              {businessType === "SALE"
+                ? "For Sale"
+                : businessType === "RENT"
+                  ? "For Rent"
+                  : "Sale & Rent"}
+            </Badge>
           </div>
           <Tooltip.Provider>
             <Tooltip.Root>
@@ -88,63 +107,64 @@ const CarCard = ({ car, className }: CarCardProps) => {
                   size="icon"
                   onClick={handleToggleSave}
                   disabled={isSaving}
-                  className={`absolute top-3 right-3 h-10 w-10 rounded-full bg-white/90 hover:bg-white shadow-md transition-all duration-200 hover:scale-110 ${isSaved ? "text-red-500 hover:text-red-600" : "text-gray-600 hover:text-gray-800"
-                    }`}
-                  aria-label={isSaved ? "Remove from saved" : "Add to saved"}
+                  className="absolute top-3 right-3 h-10 w-10 rounded-full bg-background/90 hover:bg-background shadow-md transition-all duration-200 hover:scale-110"
                 >
                   {isSaving ? (
-                    <Loader2 className="animate-spin h-5 w-5" />
+                    <Loader2 className="animate-spin h-5 w-5 text-muted-foreground" />
                   ) : (
                     <Heart
-                      className={isSaved ? "fill-current" : "fill-transparent"}
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        isSaved ? "text-destructive fill-current" : "text-muted-foreground"
+                      )}
                       size={20}
                     />
                   )}
                 </Button>
               </Tooltip.Trigger>
-              <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-md p-2 shadow-lg border border-gray-800/20">
+              <Tooltip.Content className="bg-muted text-foreground text-xs rounded-md p-2 shadow-lg">
                 {isSaved ? "Remove from Saved" : "Save this Car"}
-                <Tooltip.Arrow className="fill-gray-900" />
+                <Tooltip.Arrow className="fill-muted" />
               </Tooltip.Content>
             </Tooltip.Root>
           </Tooltip.Provider>
         </div>
 
         {/* Content Block */}
-        <CardContent className="p-4 pb-0 flex flex-col gap-4">
+        <CardContent className="p-4 flex flex-col gap-4 h-full">
           {/* Car Details */}
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-gray-900 truncate">
+            <h3 className="text-xl font-semibold text-accent-foreground truncate">
               {car.make} {car.model}
             </h3>
+
             <div className="flex justify-between text-sm">
               <div className="flex flex-col">
-                <span className="text-gray-500">Mileage</span>
-                <p className="font-medium text-gray-800">
+                <span className="text-muted-foreground">Mileage</span>
+                <p className="font-medium text-accent-foreground">
                   {car.mileage.toLocaleString()} km
                 </p>
               </div>
               <div className="flex flex-col text-right">
-                <span className="text-gray-500">Price/Day</span>
-                <p className="font-medium text-gray-800">{formatCurrencyVND(car.price)}</p>
+                <span className="text-muted-foreground">Price/Day</span>
+                <p className="font-medium text-muted-foreground">{formatCurrencyVND(car.price)}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-baseline-last justify-between">
-
+          <div className="flex items-end justify-between mt-4">
             {/* Badges Block */}
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 text-xs">
+              <Badge variant="lavender" className="text-xs">
                 {car.fuelType}
               </Badge>
-              <Badge className="bg-green-50 text-green-700 border border-green-200 px-2 py-1 text-xs">
+              <Badge variant="navy" className="text-xs">
                 {car.transmission}
               </Badge>
-              <Badge className="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 text-xs">
+              <Badge variant="sage" className="text-xs">
                 {car.year}
               </Badge>
-              <Badge className="bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-1 text-xs">
+              <Badge variant="sky" className="text-xs">
                 {car.seats || 4} Seats
               </Badge>
             </div>
@@ -155,23 +175,20 @@ const CarCard = ({ car, className }: CarCardProps) => {
                 <Tooltip.Trigger asChild>
                   <div className="flex justify-end">
                     <Button
-                      className="w-fit bg-transparent text-black rounded-lg bg-gradient-to-br hover:from-bg-cma/80 hover:to-bg-cma/100 hover:text-white shadow-sm hover:shadow-md transition-all duration-200 text-left border-none outline-none"
+                      className="w-fit btn-gold text-sm px-4 py-2"
                       onClick={() => router.push(`/cars/${car.id}`)}
                     >
                       Book Now
                     </Button>
                   </div>
-
                 </Tooltip.Trigger>
-                <Tooltip.Content className="bg-gray-900 text-white text-xs rounded-md p-2 shadow-lg border border-gray-800/20 z-10">
+                <Tooltip.Content className="bg-muted text-foreground text-xs rounded-md p-2 shadow-lg">
                   View details and book this car
-                  <Tooltip.Arrow className="fill-gray-900" />
+                  <Tooltip.Arrow className="fill-muted" />
                 </Tooltip.Content>
               </Tooltip.Root>
             </Tooltip.Provider>
           </div>
-
-
         </CardContent>
       </Card>
     </motion.div>

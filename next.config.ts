@@ -16,9 +16,17 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'sflhbodizwysfnrhmtby.supabase.co', // Added for V2
       },
+      {
+        protocol: 'https',
+        hostname: 'vuuuoaecbivjtnstczol.supabase.co', // Added for V3
+      },
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+      },
     ],
-    // domains: ['swebmtbllgqpqqulwjvj.supabase.co', 'meuqyauxtxadqcaftrwl.supabase.co'
-   
+    // domains: ['swebmtbllgqpqqulwjvj.supabase.co', 'meuqyauxtxadqcaftrwl.supabase.co', 'vuuuoaecbivjtnstczol.supabase.co','img.clerk.com'],
+    qualities: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
   },
 
 

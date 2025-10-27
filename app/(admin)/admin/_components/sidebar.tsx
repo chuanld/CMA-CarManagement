@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users } from "lucide-react";
+import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users, PyramidIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
 
@@ -10,8 +10,9 @@ import { SignOutButton } from "@clerk/nextjs";
 const routes = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { label: "Cars", icon: Car, href: "/admin/cars" },
-  { label: "Test Drives", icon: Calendar, href: "/admin/test-drives" },
   { label: "Dealers", icon: Users, href: "/admin/dealers" },
+  { label: "Bookings", icon: Calendar, href: "/admin/bookings" },
+  { label: "Purchases", icon: PyramidIcon, href: "/admin/purchases" },
   // { label: "Settings", icon: Cog, href: "/admin/settings" },
 ];
 
@@ -21,10 +22,10 @@ export const Sidebar = () => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex h-full flex-col overflow-y-auto bg-white shadow-sm border-r">
+      <div className="hidden md:flex h-full flex-col overflow-y-auto bg-secondary shadow-sm border-r">
         <div className="p-6">
           <Link href="/admin">
-            <h1 className="text-xl font-bold">CMA Admin</h1>
+            <h1 className="text-xl font-bold text-primary dark:text-accent">CMA Portal</h1>
           </Link>
         </div>
         <div className="flex flex-col w-full">
@@ -33,9 +34,9 @@ export const Sidebar = () => {
               key={route.href}
               href={route.href}
               className={cn(
-                "flex items-center gap-x-2 text-slate-500 text-sm font-medium pl-6 transition-all hover:text-slate-600 hover:bg-slate-100/50",
+                "flex items-center gap-x-2 text-slate-500 text-sm font-medium pl-6 transition-all hover:bg-accent2/20 ",
                 pathname === route.href
-                  ? "text-blue-700 bg-blue-100/50 hover:bg-blue-100 hover:text-blue-700"
+                  ? " bg-accent2/90 hover:bg-accent2/80 text-accent2-foreground"
                   : "",
                 "h-12"
               )}

@@ -2,11 +2,12 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { z } from "zod";
-import { cn } from "@/lib/utils"; // shadcn utility for className merging
+import { cn } from "@/lib/utils";
 import { carFilterSchema } from "@/schemas/carFilterSchema";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,16 +18,22 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Search, ChevronDown, X } from "lucide-react";
+import { Search, ChevronDown, X, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
-type StatusCar = "ALL" | "AVAILABLE" | "SOLD" | "UNAVAILABLE" | "PENDING";
 type CarFilterFormValues = z.infer<typeof carFilterSchema>;
-type SortOrder = "asc" | "desc";
-type SortBy = "createdAt" | "price" | "year";
 
-const defaultCarFilterValues: CarFilterFormValues = {
+interface CarFiltersProps {
+  onChange: (values: CarFilterFormValues) => void;
+}
+
+const defaultValues: CarFilterFormValues = {
   search: "",
-  status: "ALL",
+  status: undefined,
   featured: undefined,
   bodyType: undefined,
   fuelType: undefined,
@@ -35,298 +42,293 @@ const defaultCarFilterValues: CarFilterFormValues = {
   year: undefined,
   make: undefined,
   model: undefined,
-  minPrice: undefined,
-  maxPrice: undefined,
+  carType: undefined,
+  countViews: undefined,
+  avgRating: undefined,
+  negotiable: undefined,
+  minSalePrice: undefined,
+  maxSalePrice: undefined,
+  minRentHourlyPrice: undefined,
+  maxRentHourlyPrice: undefined,
+  minRentDailyPrice: undefined,
+  maxRentDailyPrice: undefined,
+  minDeposit: undefined,
+  maxDeposit: undefined,
   sortBy: "createdAt",
   sortOrder: "desc",
   page: 1,
   limit: 5,
 };
 
-export const CarFilters = () => {
+export const CarFilters = ({ onChange }: CarFiltersProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const isFirst = useRef(true);
   const [filterCount, setFilterCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false); // For debounced feedback
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
-  const form = useForm<CarFilterFormValues>({
+  const {
+    register,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<CarFilterFormValues>({
     resolver: zodResolver(carFilterSchema) as any,
-    defaultValues: defaultCarFilterValues,
+    defaultValues,
   });
 
-  // Sync form with URL search params
+  /* ---------------------------------------------------- */
+  /* 1. Init form from URL                               */
+  /* ---------------------------------------------------- */
   useEffect(() => {
     const params = Object.fromEntries(searchParams.entries());
-    form.reset({
-      ...defaultCarFilterValues,
-      ...params,
-      page: params.page ? Number(params.page) : 1,
-      limit: params.limit ? Number(params.limit) : 5,
-      year: params.year ? Number(params.year) : undefined,
-      minPrice: params.minPrice ? Number(params.minPrice) : undefined,
-      maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
-    });
-  }, [searchParams, form]);
+    const parsed: Partial<CarFilterFormValues> = {};
 
-  // Debounced URL update and filter count
+    for (const [k, v] of Object.entries(params)) {
+      if (["page", "limit", "year", "countViews", "avgRating", "minSalePrice", "maxSalePrice", "minRentHourlyPrice", "maxRentHourlyPrice", "minRentDailyPrice", "maxRentDailyPrice", "minDeposit", "maxDeposit"].includes(k)) {
+        parsed[k as keyof CarFilterFormValues] = Number(v) as any;
+      } else if (["featured", "negotiable"].includes(k)) {
+        parsed[k as keyof CarFilterFormValues] = v === "true" ? true : undefined as any;
+      } else {
+        parsed[k as keyof CarFilterFormValues] = v as any;
+      }
+    }
+
+    reset({ ...defaultValues, ...parsed });
+    onChange({ ...defaultValues, ...parsed });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  /* ---------------------------------------------------- */
+  /* 2. Push every change → URL + parent                */
+  /* ---------------------------------------------------- */
   useEffect(() => {
-    let handler: NodeJS.Timeout;
+    const sub = watch((values:any) => {
+      if (isFirst.current) {
+        isFirst.current = false;
+        return;
+      }
 
-    const subscription = form.watch((values) => {
-      clearTimeout(handler);
-      setIsLoading(true);
+      const clean: Record<string, string> = {};
+      let cnt = 0;
 
-      handler = setTimeout(() => {
-        const params = new URLSearchParams();
-        Object.entries(values).forEach(([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== "" &&
-            value !== null &&
-            !(typeof value === "number" && isNaN(value)) &&
-            !(key === "status" && value === "ALL")
-          ) {
-            params.set(key, String(value));
-          }
-        });
+      Object.entries(values).forEach(([k, v]) => {
+        if (v === undefined || v === "" || v === false) return;
+        if (k === "status" && v === "ALL") return;
+        if (["sortBy", "sortOrder", "page", "limit"].includes(k)) return;
 
-        router.replace(`?${params.toString()}`, { scroll: false });
-        setIsLoading(false);
+        clean[k] = String(v);
+        cnt++;
+      });
+      if (values.status && values.status !== "ALL") cnt++;
 
-        // Calculate active filter count
-        const count = Object.entries(values).reduce((acc, [key, value]) => {
-          if (
-            value !== undefined &&
-            value !== "" &&
-            value !== null &&
-            !(typeof value === "number" && isNaN(value)) &&
-            !(key === "status" && value === "ALL") &&
-            !["sortBy", "sortOrder", "page", "limit"].includes(key)
-          ) {
-            return acc + 1;
-          }
-          return acc;
-        }, 0);
-        setFilterCount(count);
-      }, 400);
+      setFilterCount(cnt);
+
+      const sp = new URLSearchParams();
+      Object.entries(clean).forEach(([k, v]) => sp.set(k, v));
+      sp.set("page", String(values.page ?? 1));
+      sp.set("limit", String(values.limit ?? 5));
+      sp.set("sortBy", values.sortBy ?? "createdAt");
+      sp.set("sortOrder", values.sortOrder ?? "desc");
+
+      router.replace(`?${sp.toString()}`, { scroll: false });
+      onChange && onChange(values);
     });
 
-    return () => {
-      clearTimeout(handler);
-      subscription.unsubscribe();
-    };
-  }, [form.watch, router]);
+    return () => sub.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watch, router, onChange]);
+
+  const advancedFields = [
+    { name: "bodyType", placeholder: "Body Type", hint: "Sedan, SUV, …" },
+    { name: "fuelType", placeholder: "Fuel Type", hint: "Petrol, Diesel, …" },
+    { name: "transmission", placeholder: "Transmission", hint: "Automatic, Manual, …" },
+    { name: "color", placeholder: "Color", hint: "Red, Blue, …" },
+    { name: "make", placeholder: "Make", hint: "Toyota, BMW, …" },
+    { name: "model", placeholder: "Model", hint: "Corolla, X5, …" },
+    { name: "year", placeholder: "Year", type: "number" },
+    { name: "countViews", placeholder: "Min Views", type: "number" },
+    { name: "avgRating", placeholder: "Min Rating", type: "number" },
+  ] as const;
 
   return (
-    <div className="sticky top-0 z-10 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg space-y-2">
-      {/* Header with Filter Count */}
+    <div className="sticky top-0 z-10 p-4 bg-card rounded-xl shadow-lg space-y-3">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Filter Vehicles
-        </h3>
+        <h3 className="text-lg font-semibold">Filter Vehicles</h3>
         {filterCount > 0 && (
-          <span className="inline-flex items-center px-2.5 py-1 text-sm font-medium text-white bg-primary rounded-full">
-            {filterCount} {filterCount === 1 ? "Filter" : "Filters"} Active
-          </span>
+          <span className="badge-primary">{filterCount} active</span>
         )}
       </div>
 
-      {/* Main Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Main row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 p-4 bg-card rounded-xl border border-border">
+        {/* Search */}
+        <div className="relative col-span-1 sm:col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by model or make..."
-            className={cn(
-              "pl-10 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
-              form.formState.errors.search && "border-red-500"
-            )}
-            {...form.register("search")}
+            placeholder="Search make / model…"
+            className={cn("pl-10 h-10 border-none", errors.search && "border-destructive")}
+            {...register("search")}
           />
-          {form.formState.errors.search && (
-            <p className="mt-1 text-xs text-red-500">
-              {form.formState.errors.search.message}
-            </p>
-          )}
         </div>
 
-        {/* Status Select */}
+        {/* Status */}
         <Select
-          onValueChange={(val: StatusCar) => form.setValue("status", val)}
-          value={form.watch("status") || "ALL"}
+          value={watch("status") ?? "ALL"}
+          onValueChange={(v) => setValue("status", v as any)}
         >
-          <SelectTrigger
-            className={cn(
-              "border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent",
-              form.formState.errors.status && "border-red-500"
-            )}
-            aria-label="Select vehicle status"
-          >
-            <SelectValue placeholder="Select Status" />
+          <SelectTrigger className="h-10 border-none">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="AVAILABLE">Available</SelectItem>
-            <SelectItem value="UNAVAILABLE">Unavailable</SelectItem>
-            <SelectItem value="SOLD">Sold</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
+          <SelectContent className="bg-card">
+            <SelectItem value="ALL">All</SelectItem>
+            {["AVAILABLE","RESERVED","RENTED","SOLD","PENDING"].map((s) => (
+              <SelectItem key={s} value={s}>
+                {s[0] + s.slice(1).toLowerCase()}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        {/* Featured Checkbox */}
-        <div className="flex items-center space-x-2">
+        {/* Car type */}
+        <Select
+          value={watch("carType") ?? "BOTH"}
+          onValueChange={(v) => setValue("carType", v as any)}
+        >
+          <SelectTrigger className="h-10 border-none">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent className="bg-card">
+            <SelectItem value="SALE">Sale</SelectItem>
+            <SelectItem value="RENT">Rent</SelectItem>
+            <SelectItem value="BOTH">Both</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Featured */}
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg  bg-background">
           <Checkbox
             id="featured"
-            checked={!!form.watch("featured")}
-            onCheckedChange={(val) => form.setValue("featured", Boolean(val))}
-            className="border-gray-300 focus:ring-primary"
-            aria-label="Filter by featured vehicles"
+            checked={!!watch("featured")}
+            onCheckedChange={(c) => setValue("featured", Boolean(c))}
           />
-          <label
-            htmlFor="featured"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Featured Vehicles
-          </label>
+          <label htmlFor="featured" className="text-sm">Featured</label>
         </div>
 
-        {/* Sort By and Order */}
-        <div className="flex  gap-3">
+        {/* Sort */}
+        <div className="flex gap-2 col-span-1 sm:col-span-2 lg:col-span-1">
           <Select
-            onValueChange={(val: SortBy) => form.setValue("sortBy", val)}
-            value={form.watch("sortBy")}
+            value={watch("sortBy")}
+            onValueChange={(v) => setValue("sortBy", v as any)}
           >
-            <SelectTrigger
-              className={cn(
-                "border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent w-full",
-                form.formState.errors.sortBy && "border-red-500"
-              )}
-              aria-label="Sort by"
-            >
-              <SelectValue placeholder="Sort By" />
+            <SelectTrigger className="h-10 border-none">
+              <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">Date Added</SelectItem>
+            <SelectContent className="bg-card">
+              <SelectItem value="createdAt">Date added</SelectItem>
               <SelectItem value="price">Price</SelectItem>
               <SelectItem value="year">Year</SelectItem>
             </SelectContent>
           </Select>
 
           <Select
-            onValueChange={(val: SortOrder) => form.setValue("sortOrder", val)}
-            value={form.watch("sortOrder")}
+            value={watch("sortOrder")}
+            onValueChange={(v) => setValue("sortOrder", v as any)}
           >
-            <SelectTrigger
-              className={cn(
-                "border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent w-full",
-                form.formState.errors.sortOrder && "border-red-500"
-              )}
-              aria-label="Sort order"
-            >
-              <SelectValue placeholder="Order" />
+            <SelectTrigger className="h-10 w-12 border-none">
+              <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
+            <SelectContent className="bg-card">
+              <SelectItem value="asc"><ArrowUp className="h-4 w-4" /></SelectItem>
+              <SelectItem value="desc"><ArrowDown className="h-4 w-4" /></SelectItem>
             </SelectContent>
           </Select>
-
-          <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 text-primary font-medium hover:bg-primary hover:text-white transition-all rounded-lg"
-          aria-expanded={showAdvanced}
-          aria-controls="advanced-filters"
-        >
-          Advanced Filters
-          <ChevronDown
-            className={cn(
-              "h-5 w-5 transition-transform",
-              showAdvanced && "rotate-180"
-            )}
-          />
-        </Button>
         </div>
       </div>
 
-      {/* Advanced Filters */}
-      <div className="border-t pt-2 dark:border-gray-700">
-        {showAdvanced && (
-          <div
-            id="advanced-filters"
-            className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-300"
-          >
-            {[
-              { name: "bodyType", placeholder: "Body Type (e.g., SUV)", type: "text", hint: "Sedan, SUV, Truck, Van,..." },
-              { name: "fuelType", placeholder: "Fuel Type (e.g., Petrol)", type: "text", hint: "Petrol, Diesel, Electric, Hybrid,..." },
-              { name: "transmission", placeholder: "Transmission (e.g., Automatic)", type: "text", hint: "Automatic, Manual, Semi-Automatic,..." },
-              { name: "color", placeholder: "Color (e.g., Blue)", type: "text", hint: "Red, Blue, Green, Black, White,..." },
-              { name: "make", placeholder: "Make (e.g., Toyota)", type: "text", hint: "Toyota, Ford, BMW, Audi,..." },
-              { name: "model", placeholder: "Model (e.g., Corolla)", type: "text", hint: "Corolla, Mustang, X5, A4,..." },
-              { name: "year", placeholder: "Year (e.g., 2020)", type: "number" },
-              { name: "minPrice", placeholder: "Min Price (e.g., 10000)", type: "number" },
-              { name: "maxPrice", placeholder: "Max Price (e.g., 50000)", type: "number" },
-            ].map((field) => (
-              <div key={field.name} className="relative">
-                <Input
-                  type={field.type}
-                  placeholder={field.placeholder}
-                  className={cn(
-                    "border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
-                    form.formState.errors[field.name as keyof CarFilterFormValues] && "border-red-500"
-                  )}
-                  {...form.register(field.name as keyof CarFilterFormValues, {
-                    valueAsNumber: field.type === "number",
-                  })}
-                />
-                {field.hint && (
-                  <p className="mt-1 ml-2 text-xs text-gray-500">{field.hint}</p>
-                )}
-                {form.formState.errors[field.name as keyof CarFilterFormValues] && (
-                  <p className="mt-1 text-xs text-red-500">
-                    {form.formState.errors[field.name as keyof CarFilterFormValues]?.message}
-                  </p>
-                )}
+      {/* Pricing collapsible */}
+      <Collapsible open={showPricing} onOpenChange={setShowPricing}>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium">
+          Pricing <ChevronDown className={cn("h-4 w-4 transition-transform", showPricing && "rotate-180")} />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Sale price */}
+          {(watch("carType") === "SALE" || watch("carType") === "BOTH") && (
+            <>
+              <div>
+                <label className="text-xs">Min Sale Price</label>
+                <Input type="number" {...register("minSalePrice", { valueAsNumber: true })} />
               </div>
-            ))}
-            {/* Clear Advanced Filters Button */}
-            <div className="flex justify-end col-span-full">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  ["bodyType", "fuelType", "transmission", "color", "make", "model", "year", "minPrice", "maxPrice"].forEach((field) =>
-                    form.setValue(field as keyof CarFilterFormValues, undefined)
-                  );
-                }}
-                className="text-primary hover:text-primary-dark"
-              >
-                <X className="h-4 w-4 mr-1" /> Clear Advanced Filters
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+              <div>
+                <label className="text-xs">Max Sale Price</label>
+                <Input type="number" {...register("maxSalePrice", { valueAsNumber: true })} />
+              </div>
+              <div className="flex items-center gap-2 mt-5">
+                <Checkbox
+                  id="negotiable"
+                  checked={!!watch("negotiable")}
+                  onCheckedChange={(c) => setValue("negotiable", Boolean(c))}
+                />
+                <label htmlFor="negotiable" className="text-sm">Negotiable</label>
+              </div>
+            </>
+          )}
 
-      {/* Reset All Button */}
+          {/* Rent price */}
+          {(watch("carType") === "RENT" || watch("carType") === "BOTH") && (
+            <>
+              <div><label className="text-xs">Min Hourly</label><Input type="number" {...register("minRentHourlyPrice", { valueAsNumber: true })} /></div>
+              <div><label className="text-xs">Max Hourly</label><Input type="number" {...register("maxRentHourlyPrice", { valueAsNumber: true })} /></div>
+              <div><label className="text-xs">Min Daily</label><Input type="number" {...register("minRentDailyPrice", { valueAsNumber: true })} /></div>
+              <div><label className="text-xs">Max Daily</label><Input type="number" {...register("maxRentDailyPrice", { valueAsNumber: true })} /></div>
+              <div><label className="text-xs">Min Deposit</label><Input type="number" {...register("minDeposit", { valueAsNumber: true })} /></div>
+              <div><label className="text-xs">Max Deposit</label><Input type="number" {...register("maxDeposit", { valueAsNumber: true })} /></div>
+            </>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Advanced collapsible */}
+      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium">
+          Advanced <ChevronDown className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-180")} />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {advancedFields.map((f:any) => (
+            <div key={f.name}>
+              <Input
+                type={f.type ?? "text"}
+                placeholder={f.placeholder}
+                {...register(f.name as keyof CarFilterFormValues, {
+                  valueAsNumber: f.type === "number",
+                })}
+              />
+              {f.hint && <p className="mt-1 text-xs text-muted-foreground">{f.hint}</p>}
+            </div>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => advancedFields.forEach((f) => setValue(f.name as any, undefined))}
+          >
+            <X className="h-4 w-4 mr-1" /> Clear
+          </Button>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Reset */}
       <div className="flex justify-end">
         <Button
-          type="button"
           variant="outline"
-          className={cn(
-            "bg-primary text-white hover:bg-primary-dark transition-all rounded-lg",
-            isLoading && "opacity-50 cursor-not-allowed"
-          )}
-          disabled={isLoading}
           onClick={() => {
-            form.reset(defaultCarFilterValues);
+            reset(defaultValues);
             router.replace("?", { scroll: false });
           }}
         >
-          {isLoading ? "Applying..." : "Reset All Filters"}
+          Reset All
         </Button>
       </div>
     </div>

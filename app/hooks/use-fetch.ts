@@ -14,7 +14,12 @@ const useFetch = <T>(cb: any) => {
       const result = await cb(...args);
       setData(result);
       setError(null);
+      if(result?.success === false){
+        setError(result?.error)
+      }
+      console.log(result)
     } catch (err: unknown) {
+      console.log(err,'rreee')
       const message = err instanceof Error ? err.message : "Unexpected error";
       toast.error(message);
       setError(err instanceof Error ? err : new Error(String(err)));

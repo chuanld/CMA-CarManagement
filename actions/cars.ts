@@ -1,14 +1,16 @@
 "use server";
+
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
-import { revalidatePath } from "next/cache";
-import { QueryData } from "@supabase/supabase-js";
+
 import { serializeCarData } from "@/lib/helper";
 import { ApiQueryPayload } from "@/types/payload";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GetCarsInput, GetCarsInputSchema } from "@/schemas/carFilterSchema";
 
 async function fileToBase64(file: File): Promise<string> {
   const bytes = await file.arrayBuffer();
@@ -45,8 +47,10 @@ export async function processCarImageAI(file: File) {
             7. Fuel type (your best guess)
             8. Transmission type (your best guess)
             9. Seats (your best guess)
-            10. Price (your best guess, only show the number following VND (VietNam currency), no currency symbols)
-            11. Short Description as to be added to a car listing
+            10. Sale Price (your best guess, it's a price sale for car, only show the number following VND (VietNam currency), no currency symbols)
+            11. Rent Hourly Price (your best guess, it's a price for renting car hourly, normal range 200000 - 400000vnd, only show the number following VND (VietNam currency), no currency symbols)
+            12. Rent Daily Price (your best guess, it's a price for renting car daily, normal range 1000000 - 2000000vnd, only show the number following VND (VietNam currency), no currency symbols)
+            13. Short Description as to be added to a car listing
 
             Format your response as a clean JSON object with these fields:
             {
@@ -54,7 +58,9 @@ export async function processCarImageAI(file: File) {
                 "model": "",
                 "year": 0000,
                 "color": "",
-                "price": 2000000000,
+                "salePrice": 2000000000,
+                "rentHourlyPrice":300000,
+                "rentDailyPrice":1200000,
                 "mileage": 50,
                 "bodyType": "",
                 "fuelType": "",
@@ -85,7 +91,9 @@ export async function processCarImageAI(file: File) {
           "model",
           "year",
           "color",
-          "price",
+          "salePrice",
+          "rentHourlyPrice",
+          "rentDailyPrice",
           "mileage",
           "bodyType",
           "fuelType",
@@ -125,89 +133,33 @@ export async function processCarImageAI(file: File) {
   }
 }
 
-// export async function addCar ({carData, images}: {carData: any, images: any[]}) {
-//     try {
-//         const {userId} = await auth();
-//         if(!userId) {
-//             throw new Error("Unauthorized");
-//         }
-//         const user = await db.user.findUnique({
-//             where: {clerkUserId: userId},
-//         });
-//         if(!user) {
-//             throw new Error("User not found");
-//         }
+export async function uploadImageToSupabase(
+  supabase: ReturnType<typeof createClient>,
+  folderPath: string,
+  base64Image: string,
+  index: number
+): Promise<string | null> {
+  if (!base64Image.startsWith("data:image/")) return null;
 
-//         const carId = uuidv4();
-//         const folderPath = `cars/${carId}`;
+  const base64 = base64Image.split(",")[1];
+  const imageBuffer = Buffer.from(base64, "base64");
 
-//         const cookieStore = await cookies();
-//         const supabase = createClient(cookieStore)
+  const mimeType = base64Image.match(/data:(image\/[a-zA-Z0-9]+);/);
+  const fileExtension = mimeType ? mimeType[1].split("/")[1] : "jpeg";
+  const fileName = `image-${Date.now()}-${index}.${fileExtension}`;
+  const filePath = `${folderPath}/${fileName}`;
 
-//         const imageUrls: string[] = [];
-//         for(let i = 0; i < images.length; i++) {
-//             const base64Image: any = images[i];
+  const { error } = await supabase.storage
+    .from("car-images")
+    .upload(filePath, imageBuffer, {
+      contentType: `image/${fileExtension}`,
+    });
 
-//             if(!base64Image || !base64Image.startsWith("data:image/")) {
-//                 console.warn("Skipping invalid image format");
-//                 continue;
-//             }
+  if (error) throw new Error("Supabase upload error: " + error.message);
 
-//             //Extract the base64 part (remove data:image/...;base64,)
-//             const base64 = base64Image.split(",")[1];
-//             const imageBuffer = Buffer.from(base64, 'base64');
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URLV2}/storage/v1/object/public/car-images/${filePath}`;
+}
 
-//             //Determine file extension
-//             const mimeType = base64Image.match(/data:(image\/[a-zA-Z0-9]+);/);
-//             const fileExtension = mimeType ? mimeType[1] : "jpg";
-
-//             //Create filename
-//             const fileName = `image-${Date.now()}-${i}.${fileExtension}`;
-//             const filePath = `${folderPath}/${fileName}`;
-
-//             const {data, error} = await supabase.storage
-//                 .from("car-images")
-//                 .upload(filePath, imageBuffer, {
-//                     contentType: `image/${fileExtension}`,
-//                 });
-//             if(error) {
-//                 console.error("Supabase upload error:", error);
-//                 throw new Error("Image upload failed: " + error.message);
-//             }
-//             const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${filePath}`;
-
-//             imageUrls.push(publicUrl);
-
-//             if(imageUrls.length === 0) {
-//                 throw new Error("No valid images uploaded");
-//             }
-
-//             const car = await db.car.create({
-//                 data: {
-//                     id: carId,
-//                     make: carData.make,
-//                     model: carData.model,
-//                     year: carData.year,
-//                     price: carData.price,
-//                     mileage: carData.mileage,
-//                     color: carData.color,
-//                     fuelType: carData.fuelType,
-//                     transmission: carData.transmission,
-//                     bodyType: carData.bodyType,
-//                     seats: carData.seats,
-//                     description: carData.description,
-//                     status: carData.status || "available",
-//                     featured: carData.featured,
-//                     images: imageUrls,
-//                 },
-//             });
-//         };
-//         revalidatePath("/admin/cars");
-//         return {success: true};
-//     } catch (err) {
-//         throw new Error("Add car error: " + (err as Error).message);
-//     }
-// }
 export async function addCar({
   carData,
   images,
@@ -216,27 +168,57 @@ export async function addCar({
   images: string[];
 }) {
   try {
+    // auth
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    if (!userId) throw new Error("Unauthorized");
 
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
       include: { dealers: true },
     });
-    if (!user) {
-      throw new Error("User not found");
+    if (!user) throw new Error("User not found");
+
+    // ensure dealer
+    let dealer = user.dealers?.[0];
+    if (!dealer) {
+      dealer = await db.dealer.create({
+        data: {
+          name: user.name + "Dealer" || "Unnamed Dealer",
+          ownerId: user.id,
+          email: user.email,
+          phone: user.phone || "updating...",
+          address: "updating...",
+          description: "init dealer profile, please update.",
+          logoUrl: user.imageUrl || "",
+        },
+      });
+      // connect dealer to user (optional, but keep consistency)
+      await db.user.update({
+        where: { id: user.id },
+        data: { dealers: { connect: { id: dealer.id } } },
+      });
     }
 
-    const carId = uuidv4();
-    const folderPath = `cars/${carId}`;
-
+    // upload images -> supabase
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
+    const folderPath = `cars/${dealer.id}/${uuidv4()}`;
+
+    // Feature add images and info car in parallel to optimize time
+    // const imageUrls = (
+    //   await Promise.all(
+    //     images.map(async (img, i) => {
+    //       try {
+    //         return await uploadImageToSupabase(supabase, folderPath, img, i);
+    //       } catch (e) {
+    //         console.warn("Skip image upload:", e);
+    //         return null;
+    //       }
+    //     })
+    //   )
+    // ).filter(Boolean) as string[];
 
     const imageUrls: string[] = [];
-
     for (let i = 0; i < images.length; i++) {
       const base64Image = images[i];
 
@@ -283,79 +265,281 @@ export async function addCar({
       throw new Error("No valid images uploaded");
     }
 
-    let dealer = user.dealers[0];
-    if (!dealer) {
-      dealer = await db.dealer.create({
-        data: {
-          name: user.name || "Unnamed Dealer",
-          ownerId: user.id, 
-          phone: user.phone || "updating...",
-          email: user.email,
-          address: "updating...",
-          description: "init dealer profile, please update.",
-          logoUrl: user.imageUrl || "",
-        },
-      });
-
-      await db.user.update({
-        where: { id: user.id },
-        data: { dealers: { connect: { id: dealer.id } } },
-      });
-    }
-
-    // 5️⃣ Tạo Car record kèm dealerId và images
-    await db.car.create({
+    // 1) Create car (NO price here)
+    const createdCar = await db.car.create({
       data: {
-        id: carId,
         dealerId: dealer.id,
         make: carData.make,
         model: carData.model,
         year: carData.year,
-        price: carData.price,
-        mileage: carData.mileage,
-        color: carData.color,
-        fuelType: carData.fuelType,
-        transmission: carData.transmission,
-        bodyType: carData.bodyType,
-        seats: carData.seats,
-        description: carData.description,
-        status: carData.status || "AVAILABLE",
-        featured: carData.featured || false,
+        mileage: carData.mileage ?? 0,
+        color: carData.color ?? "",
+        fuelType: carData.fuelType ?? "",
+        transmission: carData.transmission ?? "",
+        bodyType: carData.bodyType ?? "",
+        seats: carData.seats ?? null,
+        description: carData.description ?? "",
+        status: (carData.status || "AVAILABLE").toUpperCase() as any,
+        featured: !!carData.featured,
         images: imageUrls,
       },
     });
 
-    // 6️⃣ Revalidate path nếu dùng Next.js App Router
+    // 2) If sale info provided -> create SaleInfo
+    if (
+      (carData.carType === "SALE" || carData.carType === "BOTH") &&
+      carData.salePrice !== undefined &&
+      carData.salePrice !== null &&
+      carData.salePrice !== ""
+    ) {
+      // price should be decimal-like (string/number). Prisma will coerce.
+      await db.saleInfo.create({
+        data: {
+          carId: createdCar.id,
+          price:
+            typeof carData.salePrice === "string"
+              ? carData.salePrice
+              : Number(carData.salePrice),
+          negotiable: !!carData.negotiable,
+          status: (carData.saleStatus || "AVAILABLE").toUpperCase() as any,
+        },
+      });
+    }
+
+    // 3) If rent info provided -> create RentInfo
+    // check at least one rent field exists
+    if (
+      carData.carType === "RENT" ||
+      carData.carType === "BOTH" ||
+      carData.rentHourlyPrice !== undefined ||
+      carData.rentDailyPrice !== undefined ||
+      carData.deposit !== undefined
+    ) {
+      await db.rentInfo.create({
+        data: {
+          carId: createdCar.id,
+          hourlyPrice:
+            carData.rentHourlyPrice !== undefined
+              ? typeof carData.rentHourlyPrice === "string"
+                ? carData.rentHourlyPrice
+                : Number(carData.rentHourlyPrice)
+              : 0,
+          dailyPrice:
+            carData.rentDailyPrice !== undefined
+              ? typeof carData.rentDailyPrice === "string"
+                ? carData.rentDailyPrice
+                : Number(carData.rentDailyPrice)
+              : null,
+          deposit:
+            carData.deposit !== undefined
+              ? typeof carData.deposit === "string"
+                ? carData.deposit
+                : Number(carData.deposit)
+              : null,
+          available:
+            carData.available !== undefined ? !!carData.available : true,
+        },
+      });
+    }
+
     revalidatePath("/admin/cars");
-    return { success: true };
-  } catch (err) {
-    throw new Error("Add car error: " + (err as Error).message);
+
+    return { success: true, data: { carId: createdCar.id } };
+  } catch (err: any) {
+    console.error("Add car error:", err);
+    return { success: false, error: err?.message ?? String(err) };
   }
 }
 
-export async function getCars({
-  search,
-  pagination,
-  sortBy = "createdAt",
-  sortOrder = "desc",
-  filters,
-}: ApiQueryPayload) {
+/**
+ * 🚙 Get Cars (tìm kiếm, lọc, phân trang, sắp xếp)
+ */
+// export async function getCars({
+//   search,
+//   pagination,
+//   sortBy = "createdAt",
+//   sortOrder = "desc",
+//   filters,
+// }: GetCarsInput) {
+//   try {
+//     const { userId } = await auth();
+//     if (!userId) throw new Error("Unauthorized");
+
+//     const user = await db.user.findUnique({
+//       where: { clerkUserId: userId },
+//     });
+//     if (!user) throw new Error("User not found");
+
+//     // ======== BUILD WHERE ==========
+//     const where: any = {};
+
+//     // search text
+//     if (search) {
+//       where.OR = [
+//         { make: { contains: search, mode: "insensitive" } },
+//         { model: { contains: search, mode: "insensitive" } },
+//         { color: { contains: search, mode: "insensitive" } },
+//         { bodyType: { contains: search, mode: "insensitive" } },
+//         { fuelType: { contains: search, mode: "insensitive" } },
+//         { transmission: { contains: search, mode: "insensitive" } },
+//         { description: { contains: search, mode: "insensitive" } },
+//       ];
+//     }
+
+//     // filters
+//     if (filters) {
+//       if (filters.status) where.status = filters.status;
+//       if (filters.featured !== undefined) where.featured = filters.featured;
+//       if (filters.bodyType)
+//         where.bodyType = { contains: filters.bodyType, mode: "insensitive" };
+//       if (filters.fuelType)
+//         where.fuelType = { contains: filters.fuelType, mode: "insensitive" };
+//       if (filters.transmission)
+//         where.transmission = {
+//           contains: filters.transmission,
+//           mode: "insensitive",
+//         };
+//       if (filters.color)
+//         where.color = { contains: filters.color, mode: "insensitive" };
+//       if (filters.year) where.year = filters.year;
+//       if (filters.make)
+//         where.make = { contains: filters.make, mode: "insensitive" };
+//       if (filters.model)
+//         where.model = { contains: filters.model, mode: "insensitive" };
+
+//       if (filters.minSalePrice || filters.maxSalePrice) {
+//         where.saleInfo = {};
+//         if (filters.minSalePrice) where.saleInfo.price = { gte: filters.minSalePrice };
+//         if (filters.maxSalePrice) {
+//           where.saleInfo.price = {
+//             ...where.saleInfo.price,
+//             lte: filters.maxPrice,
+//           };
+//         }
+//       }
+
+//       if (filters.minRentHourlyPrice || filters.maxRentHourlyPrice) {
+//         where.rentInfo = where.rentInfo || {};
+//         if (filters.minRentHourlyPrice) where.rentInfo.hourlyPrice = { gte: filters.minRentHourlyPrice };
+//         if (filters.maxRentHourlyPrice) {
+//           where.rentInfo.hourlyPrice = {
+//             ...where.rentInfo.hourlyPrice,
+//             lte: filters.maxPrice,
+//           };
+//         }
+//       }
+//       if (filters.minRentDailyPrice || filters.maxRentDailyPrice) {
+//         where.rentInfo = where.rentInfo || {};
+//         if (filters.minRentDailyPrice) where.rentInfo.dailyPrice = { gte: filters.minRentDailyPrice };
+//         if (filters.maxRentDailyPrice) {
+//           where.rentInfo.dailyPrice = {
+//             ...where.rentInfo.dailyPrice,
+//             lte: filters.maxRentDailyPrice,
+//           };
+//         }
+//       }
+//       if (filters.minDeposit || filters.maxDeposit) {
+//         where.depositInfo = where.depositInfo || {};
+//         if (filters.minDeposit) where.depositInfo.amount = { gte: filters.minDeposit };
+//         if (filters.maxDeposit) {
+//           where.depositInfo.amount = {
+//             ...where.depositInfo.amount,
+//             lte: filters.maxDeposit,
+//           };
+//         }
+//       }
+
+//       if (filters.negotiable !== undefined) {
+//         where.saleInfo = where.saleInfo || {};
+//         where.saleInfo.negotiable = filters.negotiable;
+//       }
+
+//     }
+
+//     // ======== PAGINATION ==========
+//     const page = pagination?.page || 1;
+//     const limit = pagination?.limit || 10;
+//     const skip = (page - 1) * limit;
+
+//     // ======== ORDER BY ==========
+//     // Lưu ý: không còn field price trong Car => sortBy.price phải sort qua saleInfo.price
+//     let orderBy: any = [{ createdAt: "desc" }];
+
+//     if (sortBy && sortOrder) {
+//       switch (sortBy) {
+//         case "price":
+//           orderBy = [
+//             { saleInfo: { price: sortOrder } },
+//             { createdAt: "desc" },
+//           ];
+//           break;
+//         case "year":
+//         case "createdAt":
+//           orderBy = [{ [sortBy]: sortOrder }];
+//           break;
+//         default:
+//           orderBy = [{ createdAt: "desc" }];
+//       }
+//     }
+
+//     // ======== QUERY ==========
+//     const total = await db.car.count({ where });
+
+//     const cars = await db.car.findMany({
+//       where,
+//       orderBy,
+//       skip,
+//       take: limit,
+//       include: {
+//         dealer: {
+//           include: { workingHours: true },
+//         },
+//         saleInfo: true,
+//         rentInfo: true,
+//       },
+//     });
+
+//     const serialized = cars.map((car) => serializeCarData(car));
+
+//     return {
+//       success: true,
+//       data: serialized,
+//       pagination: {
+//         total,
+//         page,
+//         limit,
+//         totalPages: Math.ceil(total / limit),
+//       },
+//     };
+//   } catch (err) {
+//     console.error("Get cars error:", err);
+//     return { success: false, error: (err as Error).message };
+//   }
+// }
+
+export async function getCars(input: GetCarsInput) {
   try {
+    // Validate input
+    const validatedInput = GetCarsInputSchema.parse(input);
+
+    const { search, pagination, sortBy, sortOrder, filters } = validatedInput;
+
+    // Authentication
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    if (!userId) throw new Error("Unauthorized");
 
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
     });
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (!user) throw new Error("User not found");
+    if (user.role !== "ADMIN") throw new Error("Forbidden");
 
-    let whereClause: any = {};
+    // Build where clause
+    const where: any = {};
+
+    // Search
     if (search) {
-      whereClause.OR = [
+      where.OR = [
         { make: { contains: search, mode: "insensitive" } },
         { model: { contains: search, mode: "insensitive" } },
         { color: { contains: search, mode: "insensitive" } },
@@ -365,143 +549,202 @@ export async function getCars({
         { description: { contains: search, mode: "insensitive" } },
       ];
     }
+
+    // Filters
     if (filters) {
-      if (filters.status) {
-        whereClause.status = filters.status;
-      }
-      if (filters.featured !== undefined) {
-        whereClause.featured = filters.featured;
-      }
-      if (filters.bodyType) {
-        whereClause.bodyType = {
-          contains: filters.bodyType,
-          mode: "insensitive",
-        };
-      }
-      if (filters.fuelType) {
-        whereClause.fuelType = {
-          contains: filters.fuelType,
-          mode: "insensitive",
-        };
-      }
-      if (filters.transmission) {
-        whereClause.transmission = {
+      if (filters.status) where.status = filters.status;
+      if (filters.featured !== undefined) where.featured = filters.featured;
+      if (filters.bodyType)
+        where.bodyType = { contains: filters.bodyType, mode: "insensitive" };
+      if (filters.fuelType)
+        where.fuelType = { contains: filters.fuelType, mode: "insensitive" };
+      if (filters.transmission)
+        where.transmission = {
           contains: filters.transmission,
           mode: "insensitive",
         };
+      if (filters.color)
+        where.color = { contains: filters.color, mode: "insensitive" };
+      if (filters.year) where.year = filters.year;
+      if (filters.make)
+        where.make = { contains: filters.make, mode: "insensitive" };
+      if (filters.model)
+        where.model = { contains: filters.model, mode: "insensitive" };
+
+      if (filters.countViews) {
+        where.countViews = { gte: filters.countViews };
       }
-      if (filters.color) {
-        whereClause.color = { contains: filters.color, mode: "insensitive" };
+      if (filters.avgRating) {
+        where.avgRating = { gte: filters.avgRating };
       }
-      if (filters.year) {
-        whereClause.year = filters.year;
+
+      //v3 price filters
+      // ép loại xe
+      if (filters.carType === "SALE") {
+        where.saleInfo = { isNot: null };
+        where.rentInfo = null;
+      } else if (filters.carType === "RENT") {
+        where.rentInfo = { isNot: null };
+        where.saleInfo = null;
       }
-      if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-        whereClause.price = {};
-        if (filters.minPrice !== undefined) {
-          whereClause.price.gte = filters.minPrice;
+
+      // v3 price filters
+      if (filters.carType === "SALE" || filters.carType === "BOTH") {
+        if (
+          filters.minSalePrice ||
+          filters.maxSalePrice ||
+          filters.negotiable !== undefined
+        ) {
+          where.saleInfo = where.saleInfo || {};
+          if (filters.minSalePrice)
+            where.saleInfo.price = { gte: filters.minSalePrice };
+          if (filters.maxSalePrice)
+            where.saleInfo.price = {
+              ...where.saleInfo.price,
+              lte: filters.maxSalePrice,
+            };
+          if (filters.negotiable !== undefined)
+            where.saleInfo.negotiable = filters.negotiable;
         }
-        if (filters.maxPrice !== undefined) {
-          whereClause.price.lte = filters.maxPrice;
+      }
+
+      if (filters.carType === "RENT" || filters.carType === "BOTH") {
+        if (filters.minRentHourlyPrice || filters.maxRentHourlyPrice) {
+          where.rentInfo = where.rentInfo || {};
+          if (filters.minRentHourlyPrice)
+            where.rentInfo.hourlyPrice = { gte: filters.minRentHourlyPrice };
+          if (filters.maxRentHourlyPrice)
+            where.rentInfo.hourlyPrice = {
+              ...where.rentInfo.hourlyPrice,
+              lte: filters.maxRentHourlyPrice,
+            };
         }
-      }
-      if (filters.make) {
-        whereClause.make = { contains: filters.make, mode: "insensitive" };
-      }
-      if (filters.model) {
-        whereClause.model = { contains: filters.model, mode: "insensitive" };
+
+        if (filters.minRentDailyPrice || filters.maxRentDailyPrice) {
+          where.rentInfo = where.rentInfo || {};
+          if (filters.minRentDailyPrice)
+            where.rentInfo.dailyPrice = { gte: filters.minRentDailyPrice };
+          if (filters.maxRentDailyPrice)
+            where.rentInfo.dailyPrice = {
+              ...where.rentInfo.dailyPrice,
+              lte: filters.maxRentDailyPrice,
+            };
+        }
+
+        if (filters.minDeposit || filters.maxDeposit) {
+          where.rentInfo = where.rentInfo || {};
+          if (filters.minDeposit)
+            where.rentInfo.deposit = { gte: filters.minDeposit };
+          if (filters.maxDeposit)
+            where.rentInfo.deposit = {
+              ...where.rentInfo.deposit,
+              lte: filters.maxDeposit,
+            };
+        }
       }
     }
+
+    // Pagination
     const page = pagination?.page || 1;
-    const limit = pagination?.limit || 5;
+    const limit = pagination?.limit || 10;
     const skip = (page - 1) * limit;
 
-    const allowedSortFields = ["price", "year", "createdAt"];
-    const orderBy: Array<{ [key: string]: "asc" | "desc" }> = [];
+    // Sorting
+    let orderBy: any = [{ createdAt: sortOrder }];
 
-    if (allowedSortFields.includes(sortBy)) {
-      orderBy.push({ [sortBy]: sortOrder === "asc" ? "asc" : "desc" });
-    } else {
-      orderBy.push({ createdAt: "desc" }); // fallback
+    switch (sortBy) {
+      case "price":
+        orderBy = [
+          { saleInfo: { price: sortOrder } },
+          { createdAt: sortOrder },
+        ];
+        break;
+      case "hourlyPrice":
+        orderBy = [
+          { rentInfo: { hourlyPrice: sortOrder } },
+          { createdAt: sortOrder },
+        ];
+        break;
+      case "dailyPrice":
+        orderBy = [
+          { rentInfo: { dailyPrice: sortOrder } },
+          { createdAt: sortOrder },
+        ];
+        break;
+      case "year":
+      case "createdAt":
+        orderBy = [{ [sortBy]: sortOrder }];
+        break;
+      default:
+        orderBy = [{ createdAt: sortOrder }];
     }
 
-    // Fallback tie-break
-    if (sortBy !== "createdAt") {
-      orderBy.push({ createdAt: "desc" });
-    }
-
-    const totalCars = await db.car.count({ where: whereClause });
-    const totalPages = Math.ceil(totalCars / limit);
-    console.log(orderBy, "a");
+    // Query
+    const total = await db.car.count({ where });
 
     const cars = await db.car.findMany({
-      where: whereClause,
+      where,
       orderBy,
-      skip: skip,
+      skip,
       take: limit,
+      include: {
+        dealer: {
+          include: { workingHours: true },
+        },
+        saleInfo: true,
+        rentInfo: true,
+        _count: {
+          select: { savedBy: true, reviews: true },
+        },
+      },
     });
 
-    const serializeCars = cars.map((car) => serializeCarData(car));
+    const serialized = cars.map((car) => serializeCarData(car));
 
     return {
       success: true,
-      data: serializeCars,
-      pagination: { total: totalCars, page, limit, totalPages },
+      data: serialized,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   } catch (err) {
-    return { success: false, error: (err as Error).message };
+    console.error("Get cars error:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
 export async function deleteCar(carId: string) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
+    if (!userId) throw new Error("Unauthorized");
 
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
-    });
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const car = await db.car.findUnique({ where: { id: carId } });
+    if (!car) throw new Error("Car not found");
 
-    const carDeleted = await db.car.findUnique({
-      where: { id: carId },
-      select: { images: true },
-    });
+    await db.car.delete({ where: { id: carId } });
 
-    if (!carDeleted) {
-      throw new Error("Car not found");
-    }
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
 
-    await db.car.delete({
-      where: { id: carId },
-    });
+    const filePaths = car.images
+      .map((url: string) => {
+        const match = url.match(/\/car-images\/(.*)/);
+        return match ? match[1] : null;
+      })
+      .filter(Boolean) as string[];
 
-    try {
-      const cookieStore = await cookies();
-      const supabase = createClient(cookieStore);
-      const filePaths = carDeleted.images
-        .map((imgUrl: any) => {
-          const url = new URL(imgUrl);
-          const parts = url.pathname.match(/\/car-images\/(.*)/);
-          return parts ? parts[1] : null;
-        })
-        .filter(Boolean);
-
-      if (filePaths.length > 0) {
-        const { error } = await supabase.storage
-          .from("car-images")
-          .remove(filePaths as string[]);
-
-        if (error) {
-          throw new Error("Image deletion failed: " + error.message);
-        }
-      }
-    } catch (err) {
-      throw new Error("Image deletion failed: " + (err as Error).message);
+    if (filePaths.length > 0) {
+      const { error } = await supabase.storage
+        .from("car-images")
+        .remove(filePaths);
+      if (error) console.warn("Failed to delete images:", error.message);
     }
 
     revalidatePath("/admin/cars");
@@ -517,39 +760,223 @@ export async function updateCarStatus(
     status,
     featured,
   }: {
-    status: "AVAILABLE" | "UNAVAILABLE" | "SOLD" | "PENDING";
-    featured: boolean;
+    status?: "AVAILABLE" | "RESERVED" | "RENTED" | "SOLD" | "PENDING";
+    featured?: boolean;
   }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Unauthorized");
-    }
-
+    if (!userId) throw new Error("Unauthorized");
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
     });
-    if (!user) {
-      throw new Error("User not found");
-    }
+    if (!user) throw new Error("User not found");
+    if (user.role !== "ADMIN") throw new Error("Forbidden");
 
-    const updateData = {};
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (featured !== undefined) updateData.featured = featured;
 
-    if (status !== undefined) {
-      (updateData as any).status = status;
-    }
-    if (featured !== undefined) {
-      (updateData as any).featured = featured;
-    }
-
-    await db.car.update({
-      where: { id: id },
-      data: updateData,
-    });
+    await db.car.update({ where: { id }, data: updateData });
 
     revalidatePath("/admin/cars");
     return { success: true };
+  } catch (err) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+export async function adminGetCarById(carId: string) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+    const user = await db.user.findUnique({
+      where: { clerkUserId: userId },
+    });
+    if (!user) throw new Error("User not found");
+    if (user.role !== "ADMIN") throw new Error("Forbidden");
+    const car = await db.car.findUnique({
+      where: { id: carId },
+      include: {
+        dealer: {
+          include: { workingHours: true },
+        },
+        saleInfo: true,
+        rentInfo: true,
+        reviews: true,
+        _count: {
+          select: { savedBy: true, reviews: true },
+        },
+      },
+    });
+    if (!car) throw new Error("Car not found");
+    const serialized = serializeCarData(car);
+    return { success: true, data: serialized };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+export async function adminUpdateCarById(
+  carId: string,
+  { carData, images }: { carData: any; images: string[] }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+      where: { clerkUserId: userId },
+      include: { dealers: true },
+    });
+    if (!user) throw new Error("User not found");
+
+    // ensure dealer
+    let dealer = user.dealers?.[0];
+    if (!dealer) {
+      dealer = await db.dealer.create({
+        data: {
+          name: user.name + "Dealer" || "Unnamed Dealer",
+          ownerId: user.id,
+          email: user.email,
+          phone: user.phone || "updating...",
+          address: "updating...",
+          description: "init dealer profile, please update.",
+          logoUrl: user.imageUrl || "",
+        },
+      });
+      // connect dealer to user (optional, but keep consistency)
+      await db.user.update({
+        where: { id: user.id },
+        data: { dealers: { connect: { id: dealer.id } } },
+      });
+    }
+
+    // upload images -> supabase
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+
+    // Feature add images and info car in parallel to optimize time
+    // const imageUrls = (
+    //   await Promise.all(
+    //     images.map(async (img, i) => {
+    //       try {
+    //         return await uploadImageToSupabase(supabase, folderPath, img, i);
+    //       } catch (e) {
+    //         console.warn("Skip image upload:", e);
+    //         return null;
+    //       }
+    //     })
+    //   )
+    // ).filter(Boolean) as string[];
+    const car = await db.car.findUnique({
+      where: { id: carId },
+      include: { saleInfo: true, rentInfo: true },
+    });
+    if (!car) throw new Error("Car not found");
+
+    const dealerId = dealer.id;
+    const oldImages = (carData.images || []).filter(
+      (img: any) => typeof img === "string" && img.startsWith("http")
+    );
+    const newImages = images.filter(
+      (img: any) => typeof img === "string" && img.startsWith("data:image/")
+    );
+    const folderPath = `cars/${dealerId}/${carId}`;
+
+    const uploadedUrls = await Promise.all(
+      newImages.map((img, i) =>
+        uploadImageToSupabase(supabase, folderPath, img, i).catch(() => null)
+      )
+    );
+
+    const validUploadedUrls = uploadedUrls.filter(
+      (url) => typeof url === "string"
+    );
+    const finalImagesUrls = [...oldImages, ...validUploadedUrls];
+
+    const updatedCar = await db.car.update({
+      where: { id: carId },
+      data: {
+        dealerId,
+        make: carData.make,
+        model: carData.model,
+        year: carData.year ? Number(carData.year) : 2025,
+        mileage: carData.mileage ? Number(carData.mileage) : 50,
+        color: carData.color ? carData.color : "white",
+        fuelType: carData.fuelType ?? "",
+        transmission: carData.transmission ?? "",
+        bodyType: carData.bodyType ?? "",
+        seats: carData.seats ?? null,
+        description: carData.description ?? "",
+        status: (carData.status || "AVAILABLE").toUpperCase() as any,
+        featured: !!carData.featured,
+        images: finalImagesUrls,
+      },
+    });
+
+    if (carData.carType === "SALE" || carData.carType === "BOTH") {
+      await db.saleInfo.upsert({
+        where: { carId: updatedCar.id },
+        create: {
+          carId: updatedCar.id,
+          price: carData.saleInfo?.price ?? 0,
+          negotiable: !!carData.saleInfo?.negotiable,
+          status: (
+            carData.saleInfo?.status || "AVAILABLE"
+          ).toUpperCase() as any,
+        },
+        update: {
+          ...(carData.saleInfo?.price !== undefined && {
+            price: carData.saleInfo.price,
+          }),
+          ...(carData.saleInfo?.negotiable !== undefined && {
+            negotiable: !!carData.saleInfo.negotiable,
+          }),
+          ...(carData.saleInfo?.status !== undefined && {
+            status: (
+              carData.saleInfo.status || "AVAILABLE"
+            ).toUpperCase() as any,
+          }),
+        },
+      });
+    }
+
+    // ----------------------------
+    // 🚘 5️⃣ Update RentInfo (nếu có)
+    // ----------------------------
+    if (carData.carType === "RENT" || carData.carType === "BOTH") {
+      await db.rentInfo.upsert({
+        where: { carId: updatedCar.id },
+        create: {
+          carId: updatedCar.id,
+          hourlyPrice: carData.rentInfo?.hourlyPrice ?? 0,
+          dailyPrice: carData.rentInfo?.dailyPrice ?? 0,
+          deposit: carData.rentInfo?.deposit ?? 0,
+        },
+        update: {
+          ...(carData.rentInfo?.hourlyPrice !== undefined && {
+            hourlyPrice: carData.rentInfo.hourlyPrice,
+          }),
+          ...(carData.rentInfo?.dailyPrice !== undefined && {
+            dailyPrice: carData.rentInfo.dailyPrice,
+          }),
+          ...(carData.rentInfo?.deposit !== undefined && {
+            deposit: carData.rentInfo.deposit,
+          }),
+        },
+      });
+    }
+
+    if (carData.carType === "SALE") {
+      await db.rentInfo.deleteMany({ where: { carId } });
+    } else if (carData.carType === "RENT") {
+      await db.saleInfo.deleteMany({ where: { carId } });
+    }
+
+    revalidatePath("/admin/cars");
+
+    return { success: true, data: { carId: updatedCar.id } };
   } catch (err) {
     return { success: false, error: (err as Error).message };
   }

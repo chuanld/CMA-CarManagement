@@ -78,16 +78,16 @@ const CarListing = () => {
 
   if (errorData || !resultCars.success) {
     return (
-      <Card className="border-0 shadow-md bg-red-50">
+      <Card className="card rounded-2xl">
         <CardContent className="p-6 text-center">
           <Alert variant="destructive" className="max-w-md mx-auto">
-            <Info className="h-5 w-5 mr-2" />
-            <AlertTitle className="text-lg font-semibold">Error</AlertTitle>
-            <AlertDescription className="text-gray-600">
+            <Info className="h-5 w-5 mr-2 text-destructive" />
+            <AlertTitle className="text-lg font-semibold text-foreground">Error</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
               Failed to load cars. Please try again later or{" "}
               <Button
                 variant="link"
-                className="p-0 h-auto text-blue-600 hover:text-blue-800"
+                className="p-0 h-auto text-primary hover:text-primary/80"
                 onClick={() => fnGetCars({ search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page: 1, limit })}
               >
                 refresh
@@ -108,18 +108,18 @@ const CarListing = () => {
 
   if (cars.length === 0) {
     return (
-      <Card className="border-0 shadow-md bg-gray-50">
+      <Card className="card rounded-2xl">
         <CardContent className="p-6 text-center">
           <div className="flex flex-col items-center gap-4">
-            <Info className="h-8 w-8 text-gray-400" />
-            <h3 className="text-xl font-semibold text-gray-900">No Cars Found</h3>
-            <p className="text-gray-600 max-w-md">
-              We couldn’t find any cars matching your criteria. Try adjusting your
+            <Info className="h-8 w-8 text-muted-foreground" />
+            <h3 className="text-xl font-semibold text-foreground">No Cars Found</h3>
+            <p className="text-muted-foreground max-w-md">
+              We couldn't find any cars matching your criteria. Try adjusting your
               filters or explore our full inventory.
             </p>
             <Button
               variant="outline"
-              className="bg-white border-gray-300 hover:bg-gray-50 text-blue-600"
+              className="btn-outline"
               asChild
             >
               <Link href="/cars">Clear Filters & Explore</Link>
@@ -140,25 +140,25 @@ const CarListing = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 ">
-      <Card className="border border-gray-200 rounded-xl shadow-lg bg-white">
-        <CardHeader className="p-6 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
-          <CardTitle className="text-2xl font-bold text-gray-900">
+    <div className="container mx-auto px-4">
+      <Card className="card rounded-2xl">
+        <CardHeader className="card-header">
+          <CardTitle className="text-2xl font-bold text-foreground">
             Available Vehicles
           </CardTitle>
-          <p className="text-sm text-gray-500 flex items-center">
-            <Clock className="h-4 w-4 mr-1" /> Last updated: 04:30 PM +07, Oct 17,
+          <p className="text-sm text-muted-foreground flex items-center">
+            <Clock className="h-4 w-4 mr-1 text-muted-foreground" /> Last updated: 04:30 PM +07, Oct 17,
             2025
           </p>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-6 text-sm text-gray-600">
+          <div className="flex justify-between items-center mb-6 text-sm text-muted-foreground">
             <p>
               Showing{" "}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-foreground">
                 {(page - 1) * limit + 1} - {Math.min(page * limit, pageSetting.total)}
               </span>{" "}
-              of <span className="font-medium text-gray-900">{pageSetting.total}</span>{" "}
+              of <span className="font-medium text-foreground">{pageSetting.total}</span>{" "}
               results
             </p>
           </div>
@@ -169,7 +169,7 @@ const CarListing = () => {
           </div>
         </CardContent>
         {totalPages > 1 && (
-          <CardFooter className="p-6 border-t border-gray-200">
+          <CardFooter className="p-6">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -183,7 +183,6 @@ const CarListing = () => {
                     <PaginationLink
                       onClick={() => handlePageChange(pageNum)}
                       isActive={pageNum === page}
-                      className={`cursor-pointer ${pageNum === page ? "bg-blue-600 text-white" : "hover:bg-gray-100"}`}
                     >
                       {pageNum}
                     </PaginationLink>

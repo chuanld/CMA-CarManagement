@@ -12,7 +12,6 @@ export  type  carDetailsFromAI = {
     make?: string;
     model?: string;
     year?: number;
-    price?: string;
     mileage?: number;
     color?: string;
     confidence?: number;
@@ -21,6 +20,11 @@ export  type  carDetailsFromAI = {
     bodyType?: string;
     seats?: number;
     description?: string;
+    //v3 fields
+    salePrice?: number;
+    rentHourlyPrice?: number;
+    rentDailyPrice?: number;
+    deposit?: number;
   };
 };
 
@@ -89,11 +93,29 @@ export interface Car {
   statusChangedBy?: string | null
   dealer?: Dealer | null
   reviews: Review[]
-  testDriveBookings: TestDriveBooking[]
-  savedBy: UserSavedCar[]
+  testDriveBookings?: TestDriveBooking[]
+  savedBy?: UserSavedCar[]
   whishlisted?: boolean
   isBookedByOther?: boolean
   upcomingBookings?: TestDriveBooking[]
+  
+
+  //v3 fields
+  salePrice?: number | null
+  rentHourlyPrice?: number | null
+  rentDailyPrice?: number | null
+  deposit?: number | null
+  carType?: string | null
+  saleInfo?: {
+    price?: number
+    negotiable?: boolean
+  } | null
+  rentInfo?: {
+    hourlyPrice: number | null
+    dailyPrice: number | null
+    deposit: number | null
+    available: boolean
+  } | null
 }
 
 export interface CarCreateInput {

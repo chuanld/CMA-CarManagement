@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,8 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Home, ChevronRight, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronRight, Clock } from "lucide-react";
 
 interface BreadcrumbItemType {
   label: string;
@@ -20,99 +19,107 @@ interface BreadcrumbItemType {
 }
 
 interface BreadcrumbProps {
-  customItems?: BreadcrumbItemType[]; // Optional custom breadcrumb items
-  className?: string; // Optional custom class for styling
-  hideTimestamp?: boolean; // Optional flag to hide the timestamp
+  customItems?: BreadcrumbItemType[];
+  className?: string;
+  hideTimestamp?: boolean;
 }
 
-const BreadcrumbComponent = ({ customItems, className, hideTimestamp }: BreadcrumbProps) => {
+const BreadcrumbComponent = ({
+  customItems,
+  className,
+  hideTimestamp,
+}: BreadcrumbProps) => {
+  const { id } = useParams();
+
   const router = useRouter();
   const pathname = usePathname();
 
-  // Generate dynamic breadcrumb items based on pathname and custom props
+  // Generate breadcrumb items
   const breadcrumbItems = useMemo(() => {
+    const segments = pathname.split("/").filter(Boolean);
     const items: BreadcrumbItemType[] = [
-      { label: "Home", href: "/", isCurrent: false },
-      { label: "Cars", href: "/cars", isCurrent: false },
-      { label: "Car Details", isCurrent: true },
-        //reservation
-        { label: "Reservation", href: "/reservation", isCurrent: true },
-        //saved-cars
-        { label: "Saved Cars", href: "/saved-cars", isCurrent: true },
+      { label: "Home", href: "/", isCurrent: segments.length === 0 },
+      // { label: `Booking ${id}`, isCurrent: true },
+      // //cars
+      // { label: "Cars", href: "/cars", isCurrent: false },
+      // { label: `Details`, isCurrent: true },
+      // //reservations
+      // { label: "Reservations", href: "/reservations", isCurrent: false },
+      // { label: `Your Reservations`, isCurrent: true },
+      // //saved-car
+      // { label: "Saved Cars", href: "/saved-cars", isCurrent: false },
+
     ];
 
-    // Use custom items if provided, otherwise generate from pathname
-    if (customItems && customItems.length > 0) {
-      return [
-        ...items,
-        ...customItems.map((item) => ({
-          ...item,
-          isCurrent: item.isCurrent || false,
-        })),
-      ];
-    }
-
-    const segments = pathname.split("/").filter((segment) => segment);
     segments.forEach((segment, index) => {
       const href = `/${segments.slice(0, index + 1).join("/")}`;
       const isLast = index === segments.length - 1;
-      let label = segment.charAt(0).toUpperCase() + segment.slice(1).replace("-", " ");
 
-      // Customize labels based on common patterns (can be extended)
-      if (segment === "cars") {
-        label = "Cars";
-      } else if (segment === "about") {
-        label = "About Us";
-      } else if (segment === "contact") {
-        label = "Contact";
-      } else if (/^\d+$/.test(segment)) {
-        label = "Details"; // Generic for ID-based pages
-      }
+      let label = segment
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
 
-      items.push({
-        href: isLast ? undefined : href,
-        label,
-        isCurrent: isLast,
-      });
+      if (segment === "cars") label = "Cars";
+      if (segment === "bookings") label = "Bookings";
+      if (segment === "reservations") label = "Reservations";
+      if (segment === "saved-cars") label = "Saved Cars";
+      if (/^\d+$/.test(segment)) label = "Details";
+      else if (segment.length === 36 && segment.includes("-")) label = "Details"; // UUID case
+
+      items.push({ label, href: isLast ? undefined : href, isCurrent: isLast });
     });
 
-    return items;
+    return customItems?.length ? customItems : items;
   }, [pathname, customItems]);
 
   // Handle navigation
-  const handleNavigate = (href: string) => {
-    router.push(href);
+  const handleNavigate = (href: string) => router.push(href);
+
+  // Format timestamp
+  const formatTimestamp = () => {
+    const now = new Date();
+    return now.toLocaleString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZoneName: "short",
+    });
   };
 
   return (
     <div
-      className={`container mx-auto px-4 py-4 bg-white shadow-sm rounded-lg ${className}`}
+      className={`container mx-auto px-4 py-3 
+        bg-card text-card-foreground 
+        border border-border shadow-sm rounded-xl ${className}`}
     >
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         {/* Breadcrumb Navigation */}
-        <Breadcrumb className="text-sm">
+        <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbItems.map((item, index) => (
               <React.Fragment key={index}>
                 {index > 0 && (
                   <BreadcrumbSeparator>
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </BreadcrumbSeparator>
                 )}
                 <BreadcrumbItem>
                   {item.href ? (
                     <BreadcrumbLink
                       href={item.href}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      onClick={(e:any) => {
+                      onClick={(e: any) => {
                         e.preventDefault();
                         handleNavigate(item.href!);
                       }}
+                      className="text-accent2 hover:underline transition-colors"
                     >
                       {item.label}
                     </BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage className="text-gray-900 font-medium">
+                    <BreadcrumbPage className="font-medium text-primary-foreground">
                       {item.label}
                     </BreadcrumbPage>
                   )}
@@ -122,11 +129,11 @@ const BreadcrumbComponent = ({ customItems, className, hideTimestamp }: Breadcru
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Timestamp (optional) */}
+        {/* Timestamp */}
         {!hideTimestamp && (
-          <div className="flex items-center text-sm text-gray-500">
+          <div className="flex items-center text-sm text-muted-foreground">
             <Clock className="h-4 w-4 mr-1" />
-            <span>Last updated: 05:12 PM +07, Oct 17, 2025</span>
+            <span>Last updated: {formatTimestamp()}</span>
           </div>
         )}
       </div>

@@ -1,9 +1,11 @@
+import './globals.css';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
-import "./globals.css";
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
+import { ThemeProvider } from 'next-themes';
+import ProgressBar from '@/components/progress-bar';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -22,12 +24,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
         <ClerkProvider>
-          <Header />
-          <div className="min-h-screen overflow-x-hidden">{children}</div>
-          <Toaster richColors />
+          <ThemeProvider attribute="class" defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange>
+            {/* <ClientContent> */}
+              <Header />
+              <ProgressBar />
+              <div className="min-h-screen overflow-x-hidden bg-background text-foreground">{children}</div>
+              <Toaster richColors />
+            {/* </ClientContent> */}
+
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>

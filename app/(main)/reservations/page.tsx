@@ -1,4 +1,3 @@
-import { getUserTestDrives } from '@/actions/test-drive';
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation';
 import React from 'react'
@@ -15,11 +14,10 @@ const ReservationsPage = async () => {
         redirect('/sign-in?redirect=/reservations');
     }
 
-    const reservations:any = await getUserTestDrives();
     return (
-        <div className='container mx-auto px-6 py-10'>
+        <div className='container mx-auto px-6 py-10 bg-background text-background-foreground'>
             <h1 className="text-6xl mb-6 gradient-title">Your Reservations</h1>
-            <ReservationsList initialData={reservations} />
+            <ReservationsList  />
         </div>
     )
 }

@@ -16,16 +16,14 @@ import Header from "@/components/header";
 
 export default async function Home() {
   const featuredCars: Car[] | any = await getFeaturedCars();
-  const user = checkUser();
 
-  console.log(featuredCars)
   // Client-side state for FAQ accordion (since server components can't handle state)
   
 
   return (
     <>
-      <Header user={user}/>
-      <main className="min-h-screen"><HomePage featuredCars={featuredCars}  /></main>
+      <Header />
+      <main className="min-h-screen bg-background text-foreground"><HomePage featuredCars={featuredCars}  /></main>
       
     </>
   );

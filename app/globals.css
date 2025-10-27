@@ -1,159 +1,287 @@
+/* app/globals.css */
+
+/* 1. Import Tailwind (v4 uses @import) */
 @import "tailwindcss";
-@import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* 2. Define the 'dark' variant for class-based dark mode */
+/* This tells Tailwind that 'dark:' utilities should apply when the '.dark' class is present */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-bg-cma: rgb(22 25 32);
+/* 3. Define the LIGHT MODE (DEFAULT) variables in @theme */
+@theme {
+  /* LIGHT MODE - DEFAULT */
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a1a;
+
+  --color-primary: #d9b95c; /* GOLD */
+  --color-primary-foreground: #1a1a1a;
+
+  --color-secondary: #f8fafc;
+  --color-secondary-foreground: #1a1a1a;
+
+  --color-accent: #f7e8a4;
+  --color-accent-foreground: #111827;
+
+  --color-accent2: #0c395d;
+  --color-accent2-foreground: #f8fafc;
+
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+
+  --color-border: #e2e8f0;
+
+  --color-success: #10b981;
+  --color-success-foreground: #ffffff;
+
+  --color-info: #2563eb; /* Xanh dương hoàng gia (Royal blue) */
+  --color-info-foreground: #f8fafc;
+
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  /* PROGRESS BAR */
+  --color-progress: #e2e8f0;
+  --color-progress-fill: #10b981;
+
+  /* BADGES */
+  --color-badge: #d9b95c;
+  --color-badge-foreground: #ffffff;
+  --color-badge-secondary: #d97706;
+  --color-badge-secondary-foreground: #64748b;
+  --color-badge-tertiary: #6b7280;
+  --color-badge-tertiary-foreground: #ffffff;
+  --color-badge-isSale: #d14e35;
+  --color-badge-isSale-foreground: #ffffff;
+  --color-badge-isRent: #249595;
+  --color-badge-isRent-foreground: #ffffff;
+  --color-badge-both: #9143a3;
+  --color-badge-both-foreground: #ffffff;
+
+  /* SHADOWS */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 12px 0 rgb(217 185 92 / 0.25);
+
+  /* RADIUS */
+  --radius: 0.5rem;
 }
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-    /* --background: rgb(22 25 32); 
-  --foreground: rgb(255 255 255);  */
-  
-  /* Nếu muốn đồng bộ thêm card / popover / sidebar */
-  --card: rgb(22 25 32);
-  --popover: rgb(22 25 32);
-  --sidebar: rgb(22 25 32);
-  --button-cma: rgb(22 25 32);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
+/* 4. Apply the DARK MODE OVERRIDES */
+/* The dark mode variables MUST be outside the @theme block. */
+/* We wrap the CSS selector in @layer theme to ensure it is correctly ordered */
+@layer theme {
+  .dark {
+    /* DARK MODE OVERRIDES */
+    --color-background: #0b0c10;
+    --color-foreground: #eaeaea;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+    --color-primary: #14161b;
+    --color-primary-foreground: #ffffff;
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
+    --color-secondary: #1e2025; /* nền navy-xám nhẹ, trung hòa */
+    --color-secondary-foreground: #f3f4f6; /* chữ sáng nhẹ, không quá trắng */
+
+    --color-accent: #d9b95c;
+    --color-accent-foreground: #fafaf5;
+
+    --color-accent2: #2a6ea6;
+    --color-accent2-foreground: #f8fafc;
+
+    --color-border: #2c3036;
+    --color-muted: #b0b0b0;
+
+    --color-success: #2ecc71;
+    --color-destructive: #e74c3c;
+
+    --shadow-glow: 0 0 12px 0 rgb(217 185 92 / 0.45);
+
+    /* Card  */
+    --color-card: #14161b;
+    --color-card-foreground: #f2f2f2;
   }
+}
+
+/* 5. Base layer (applies the variables to the body) */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
-
-/* Custom animations for table rows */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
+@layer components {
+  /* BUTTONS */
+  .header {
+    @apply bg-gradient-to-r from-badge-secondary-foreground/10 to-accent;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  .btn-primary {
+    @apply bg-primary text-primary-foreground 
+           hover:bg-primary/90 
+           shadow-lg hover:shadow-glow
+           transition-all;
+  }
+
+  .btn-gold {
+    @apply bg-gradient-to-r from-primary to-primary/90 
+           text-primary-foreground 
+           hover:from-primary/90 hover:to-primary
+           shadow-lg hover:shadow-glow;
+  }
+
+  .btn-apply {
+    @apply bg-accent text-accent-foreground 
+           hover:bg-accent/90 
+           shadow-md hover:shadow-glow
+           transition-all;
+  }
+
+  .btn-outline {
+    @apply border  bg-background hover:bg-accent 
+         hover:text-accent-foreground;
+  }
+
+  /* ← THÊM 2 DÒNG NÀY NGAY SAU */
+  .btn-outline {
+    @apply text-foreground; /* DÒNG 1 */
+  }
+
+  /* CARDS */
+  .card {
+    @apply bg-card text-card-foreground 
+           border border-border 
+           rounded-[1rem] shadow-md;
+  }
+
+  .card-header {
+    @apply bg-gradient-to-l from-accent to-primary p-4;
+  }
+
+  /* INPUTS & SELECT */
+  .input,
+  .select-trigger,
+  .textarea {
+    @apply bg-background border-border 
+           text-foreground 
+           focus:ring-primary focus:border-primary
+           rounded-[1rem] h-14;
+  }
+
+  .select-content {
+    @apply bg-card border-border shadow-lg rounded-2xl;
+  }
+
+  .select-item {
+    @apply text-foreground hover:bg-accent hover:text-foreground 
+           px-4 py-3 rounded-lg cursor-pointer;
+  }
+
+  .select-item[aria-selected="true"] {
+    @apply bg-primary/10 text-primary font-semibold;
+  }
+
+  /* PROGRESS BAR */
+  .progress {
+    @apply bg-progress rounded-full h-2;
+  }
+
+  .progress-indicator {
+    @apply bg-progress-fill;
+  }
+
+  /* BADGES */
+  .badge-primary {
+    @apply bg-badge text-badge-foreground 
+         border border-badge 
+         rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-secondary {
+    @apply bg-badge-secondary text-badge-secondary-foreground 
+         border border-badge-secondary 
+         rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-destructive {
+    @apply bg-destructive text-destructive-foreground 
+         border border-destructive 
+         rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .popover-content {
+    @apply text-card-foreground  bg-accent
+         border border-border 
+         rounded-xl shadow-md 
+         backdrop-blur-md 
+         z-50;
+  }
+  /* For Dark Theme */
+  .dark .header {
+    @apply bg-gradient-to-l from-primary/90 to-accent2/60;
+  }
+  .dark .card-header {
+    @apply bg-gradient-to-r from-accent to-primary p-4;
+  }
+  .dark .progress-indicator {
+    @apply bg-success;
+  }
+
+  /* table  */
+  .table-row-hover:hover {
+    @apply bg-accent/5 shadow-glow transition-shadow;
   }
 }
 
-.tr-enter {
-  animation: slideIn 0.3s ease-out;
+/* 7. UTILITIES */
+@layer utilities {
+  .rounded-2xl {
+    /* border-radius: 1rem; */
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
 }
 
-/* Improve table responsiveness */
-@media (max-width: 768px) {
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .table-cell {
-    white-space: nowrap;
-  }
+/* ==== NProgress Custom (Header fixed) ==== */
+#nprogress {
+  pointer-events: none;
+}
+
+#nprogress .bar {
+  /* background: var(--color-primary) !important; ⚡ bắt buộc override */
+  background: linear-gradient(
+    to right,
+    var(--color-primary),
+    var(--color-accent)
+  ) !important;
+  height: 3px !important;
+  position: fixed !important;
+  top: 97px !important; /* chỉnh theo chiều cao Header */
+  left: 0 !important;
+  width: 100% !important;
+  z-index: 9999 !important;
+  border-radius: 9999px;
+  box-shadow: 0 0 10px rgba(217, 185, 92, 0.3);
+  transition: opacity 0.4s ease, width 0.2s ease-out;
+}
+
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  opacity: 1;
+  transform: rotate(3deg) translate(0px, -4px);
+  box-shadow: 0 0 6px var(--color-accent), 0 0 3px var(--color-accent) !important;
 }

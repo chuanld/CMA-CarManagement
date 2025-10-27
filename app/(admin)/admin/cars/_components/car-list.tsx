@@ -1,350 +1,388 @@
-'use client'
-import { deleteCar, getCars, updateCarStatus } from '@/actions/cars'
-import useFetch from '@/app/hooks/use-fetch'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatCurrency, searchDebounce } from '@/lib/helper'
-import { ApiResponse, CarListApiResponse, FilterOptions } from '@/types/api'
-import { Car, GETCARS } from '@/types/car'
-import { CarIcon, Check, Eye, Loader, Loader2, MoreHorizontal, Plus, SparklesIcon, Star, StarOff, Trash, WatchIcon, X } from 'lucide-react'
-import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
-import React, { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import PaginationToolbar from '../../_components/pagination'
-import usePagination from '@/app/hooks/use-pagination'
-import FiltersToolbar from '../../_components/filters-toolbar'
-import { CarFilters } from '../../_components/car-filter'
-import { buildCarPayload } from '@/utils/build-payload'
-import { CarFilterSchema } from '@/schemas/carFilterSchema'
-import { buildCarQueryParams } from '@/lib/buildCarQuery'
-import { useFetch2v } from '@/app/hooks/use-fetch2'
-import { ApiQueryPayload } from '@/types/payload'
+"use client";
 
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { toast } from "sonner";
 
+import usePagination from "@/app/hooks/use-pagination";
 
-interface PaginationPayload {
-    page?: number;
-    limit?: number;
-}
+import { getCars, deleteCar, updateCarStatus } from "@/actions/cars";
+import useFetch from "@/app/hooks/use-fetch";
+import { Car } from "@/types/car";
+import { formatCurrencyVND } from "@/lib/helper";
 
-type SortOptions = "newest" | "oldest" | "priceAsc" | "priceDesc" | "createdAt" | "price" | "year";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+import {
+    CarIcon,
+    Loader2,
+    MoreHorizontal,
+    Plus,
+    Star,
+    StarOff,
+    Check,
+    WatchIcon,
+    SparklesIcon,
+    Trash,
+    Eye,
+} from "lucide-react";
+
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { ApiResponse } from "@/types/api";
+import { cn } from "@/lib/utils";
+import { CarFilters } from "../../_components/car-filter";
+import PaginationToolbar from "../../_components/pagination";
+import { Badge } from "@/components/ui/badge";
+
+type SortOptions = "createdAt" | "price" | "year";
 type OrderBy = "asc" | "desc";
 
+export default function CarList() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
 
+    const [carToDelete, setCarToDelete] = useState<Car | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [filters, setFilters] = useState<Record<string, any>>({});
+    const [sortBy, setSortBy] = useState<SortOptions|undefined>(undefined);
+    const [sortOrder, setSortOrder] = useState<OrderBy|undefined>(undefined);
 
-const CarList = () => {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const [carToDelete, setCarToDelete] = useState<Car | null>(null)
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState<Boolean>(false)
-    const [sortBy, setSortBy] = useState<SortOptions>('newest')
-    const [filters, setFilters] = useState<Partial<CarFilterSchema>>({})
-    const [searchTerm, setSearchTerm] = useState<string>('')
-
-
-
-
-    const { loading: loadingCars, fetchData: fetchCars, data: carsData, error: carsError } = useFetch<CarListApiResponse>(getCars);
     const {
         page,
         limit,
-        totalItems,
+        setPage,
+        setLimit,
         totalPages,
+        totalItems,
         setTotal,
         handlePageChange,
-    } = usePagination({ initialPage: 1, initialLimit: 2 });
+    } = usePagination({
+        initialPage: Number(searchParams.get("page")) || 1,
+        initialLimit: Number(searchParams.get("limit")) || 5,
+    });
 
-    //feature filter:
-    const queryString = useMemo(() => Object.fromEntries(searchParams.entries()), [searchParams]);
+    const { loading: loadingCars, fetchData: fetchCars, data: carsRes, error: carsErr } =
+        useFetch<ApiResponse<any>>(getCars);
 
-    const buildPayload = (queryString: any) => {
+    const { loading: deleting, fetchData: delCar, data: delCarRes } = useFetch<ApiResponse<any>>(deleteCar);
+    const { loading: updating, fetchData: updCar, data: updCarRes } = useFetch<ApiResponse<any>>(updateCarStatus);
 
-        const { search = '', page: pageStr, limit: limitStr, sortBy = 'newest', sortOrder = 'desc', ...rest } = queryString;
 
-        const parsedFilters = Object.entries(rest).reduce((acc, [key, value]) => {
-            if (value === "true") acc[key] = true;
-            else if (value === "false") acc[key] = false;
-            else acc[key] = value;
-            return acc;
-        }, {} as Record<string, any>);
+    const buildPayload = () => {
+        const p = Object.fromEntries(searchParams.entries());
 
-        const pageNum = parseInt(pageStr || "1", 10);
-        const limitNum = parseInt(limitStr || "5", 10);
+        const pageNum = Number(p.page) || 1;
+        const limitNum = Number(p.limit) || 5;
+        setPage(pageNum);
+        setLimit(limitNum);
 
-        setSearchTerm(search);
-        setSortBy(sortBy as SortOptions);
-        setFilters(parsedFilters);
+        const cleanFilters: Record<string, any> = {};
+        for (const [k, v] of Object.entries(p)) {
+            if (["page", "limit", "sortBy", "sortOrder"].includes(k)) continue;
+            if (v === "true") cleanFilters[k] = true;
+            else if (v === "false") cleanFilters[k] = false;
+            else if (!isNaN(Number(v))) cleanFilters[k] = Number(v);
+            else cleanFilters[k] = v;
+        }
 
-        // handlePageChange(pageNum);
-        // setTotal(limitNum)
+        const sb = (p.sortBy as SortOptions) ?? "createdAt";
+        const so = (p.sortOrder as OrderBy) ?? "desc";
+        setSortBy(sb);
+        setSortOrder(so);
 
         return {
-            search,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-            },
-            sortBy: sortBy as SortOptions,
-            sortOrder: sortOrder    as OrderBy,
-            filters:{
-                ...parsedFilters
-            } as FilterOptions
-        }
-    }
+            pagination: { page: pageNum, limit: limitNum },
+            sortBy: sb,
+            sortOrder: so,
+            filters: cleanFilters,
+            search: p.search ?? "",
+        };
+    };
 
     useEffect(() => {
-    const { page: pageStr, limit: limitStr } = queryString;
-    const pageNum = parseInt(pageStr || '1', 10);
-    const limitNum = parseInt(limitStr || '5', 10);
-
-    handlePageChange(pageNum); // set hook page
-    setTotal(limitNum);        // set hook limit
-}, []); // chỉ chạy 1 lần
-
-    useEffect(() => {
-        const payload = buildPayload(queryString);
-
-
-        fetchCars(payload);
+        fetchCars(buildPayload());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
-    console.log(filters)
+
+    useEffect(() => {
+        if (carsRes?.success && carsRes.pagination?.total) {
+            setTotal(carsRes.pagination.total);
+        }
+    }, [carsRes, setTotal]);
 
 
     useEffect(() => {
-        if (carsData?.pagination?.total && carsData?.success) {
-            setTotal(carsData.pagination.total); // update total cho usePagination
-        }
-    }, [carsData]);
+        if (carsErr) toast.error(carsErr.message);
+    }, [carsErr]);
 
-
-
-
-
-
-
-    const { loading: deletingCar, fetchData: deleteByCar, data: deleteCarData, error: deleteCarError } = useFetch<ApiResponse<Car>>(deleteCar);
-
-
-
-    const { loading: updatingCar, fetchData: updateStatusCar, data: updateCarData, error: updateCarError } = useFetch<ApiResponse<Car[]>>(updateCarStatus);
-
-    //Handle side effects
-    useEffect(() => {
-        const payload = buildPayload(queryString);
-        if (updateCarData?.success && !updateCarError) {
-            toast.success('Car updated successfully')
-            
-            fetchCars(payload)
-        }
-        if (deleteCarData?.success && !deleteCarError) {
-            toast.success('Car deleted successfully')
-            fetchCars(payload)
-        }
-        if (carsData?.success && carsData.pagination?.total) {
-            setTotal(carsData.pagination.total);
-        }
-    }, [updateCarData, updateCarError, deleteCarData, deleteCarError, page, limit])
-
-
-    useEffect(() => {
-        if (carsError) {
-            toast.error(carsError.message)
-        }
-        if (updateCarError) {
-            toast.error(updateCarError.message)
-        }
-        if (deleteCarError) {
-            toast.error(deleteCarError.message)
-        }
-    }, [carsError, updateCarError, deleteCarError])
-
-
-    const handleToggleFeatured = async (car: Car) => {
-        await updateStatusCar(car.id, { featured: !car.featured });
-    }
-    const handleUpdateStatus = async (car: Car, status: string) => {
-        if (car.status === status) return;
-        await updateStatusCar(car.id, { status });
-    }
-    const handleDeleteCar = async () => {
+    const handleDelete = async () => {
         if (!carToDelete) return;
-        await deleteByCar(carToDelete.id);
-        setDeleteDialogOpen(false);
+        await delCar(carToDelete.id);
+        setDeleteOpen(false);
         setCarToDelete(null);
+    };
 
-    }
+    useEffect(() => {
+        if (delCarRes?.success) {
+            toast.success("Car deleted");
+            fetchCars(buildPayload());
+        }
+    }, [delCarRes]);
 
-    //Handle filter
 
+    const toggleFeatured = async (car: Car) => {
+        await updCar(car.id, { featured: !car.featured });
+    };
+
+    const setStatus = async (car: Car, status: string) => {
+        if (car.status === status) return;
+        await updCar(car.id, { status });
+    };
+
+    useEffect(() => {
+        if (updCarRes?.success) {
+            toast.success("Car updated");
+            fetchCars(buildPayload());
+        }
+    }, [updCarRes]);
+
+    const handleFilterChange = (newVals: Record<string, any>) => {
+        setPage(1);
+        const sp = new URLSearchParams();
+        Object.entries(newVals).forEach(([k, v]) => {
+            if (v === undefined || v === "" || v === false) return;
+            if (k === "status" && v === "ALL") return;
+            sp.set(k, String(v));
+        });
+        sp.set("page", "1");
+        sp.set("limit", String(limit));
+        router.replace(`?${sp.toString()}`, { scroll: false });
+    };
 
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return <span className='bg-green-100 text-green-800 py-1 px-2 rounded'>Available</span>;
-            case 'UNAVAILABLE':
-                return <span className='bg-red-100 text-red-800 py-1 px-2 rounded'>Unavailable</span>;
-            case 'SOLD':
-                return <span className='bg-gray-100 text-gray-800 py-1 px-2 rounded'>Sold</span>;
-            case 'PENDING':
-                return <span className='bg-yellow-100 text-yellow-800 py-1 px-2 rounded'>Pending</span>;
-            default:
-                return null;
-        }
-    }
+        const map: Record<string, string> = {
+            AVAILABLE: "badge-success",
+            RESERVED: "badge-warning",
+            SOLD: "badge-secondary",
+            RENTED: "badge-info",
+            PENDING: "badge-destructive",
+        };
+        const cls = map[status] ?? "badge-secondary";
+        return <span className={cn("badge-primary px-2 py-0.5 text-xs font-medium rounded-full", cls)}>{status}</span>;
+    };
 
-
-    //Filter section
-
+    const getCarPrice = (car: Car): number => {
+        if (car.saleInfo?.price) return Number(car.saleInfo.price);
+        if (car.rentInfo?.hourlyPrice) return Number(car.rentInfo.hourlyPrice);
+        return 0;
+    };
 
     return (
-        <div className='space-y-4'>
-            <div>
-                <Button onClick={() => router.push('/admin/cars/create')} className='mb-4 flex items-center'>
-                    <Plus className='w-4 h-4 mr-2' /> Add New Car
-                </Button>
+        <div className="min-h-screen p-2 md:p-4 lg:p-6 bg-card">
 
-                {/* <form onSubmit={handleSearchSubmit} className='flex items-center'>
-                    <FiltersToolbar
-                        onSearch={handleSearchChange}
-                        onFilterChange={handleFilterChange}
-                        onSortChange={handleSortChange}
-                    />
-                </form> */}
+            <div className="flex items-center justify-between mb-6 card-header">
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+                    <CarIcon className="w-8 h-8 text-primary dark:text-accent" />
+                    Car Management
+                </h1>
+                <Badge variant="outline" className="text-xs">
+                    {new Date().toLocaleString("en-US", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                    })}
+                </Badge>
             </div>
+            {/* Add button */}
+            <Button
+                onClick={() => router.push("/admin/cars/create")}
+                className="flex items-center gap-2"
+            >
+                <Plus className="h-4 w-4" /> Add New Car
+            </Button>
 
-            <CarFilters />
+            {/* Filters */}
+            <CarFilters onChange={handleFilterChange} />
 
-
-            {/* Cars Table  */}
-            <Card>
-                <CardContent>
-                    {loadingCars && !carsData ? (
-                        <div className="flex justify-center items-center py-12">
-                            <Loader2 className="animate-spin h-6 w-6 text-gray-600" />
+            {/* Table */}
+            <Card className="bg-card border-border mt-4">
+                <CardContent className="p-0">
+                    {loadingCars && !carsRes ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="animate-spin h-8 w-8 text-muted-foreground" />
                         </div>
-                    ) : carsData?.success && carsData.data.length > 0 ? (
+                    ) : carsRes?.success && carsRes.data.length ? (
                         <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className='w-24'></TableHead>
+                            <Table className="border-none">
+                                <TableHeader className="table-header">
+                                    <TableRow className="border-border ">
+                                        <TableHead className="w-20" />
                                         <TableHead>Make & Model</TableHead>
                                         <TableHead>Year</TableHead>
                                         <TableHead>Price</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Featured</TableHead>
-                                        <TableHead className='text-right'>Actions</TableHead>
-
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
-                                    {carsData.data.map((car: Car) => {
-                                        return (
-                                            <TableRow key={car.id}>
-                                                <TableCell className='w-15 h-auto overflow-hidden rounded'>
-                                                    {car?.images && car.images.length > 0 ? (
-                                                        <Image
-                                                            src={car.images[0]}
-                                                            alt={`Image of ${car.make} ${car.model}`}
-                                                            width={50}
-                                                            height={50}
-                                                            className="h-full w-full object-cover"
-                                                            priority
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-gray-200" >
-                                                            <CarIcon className="w-8 h-8 text-gray-400 m-auto" />
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>{car.make} {car.model}</TableCell>
-                                                <TableCell>{car.year}</TableCell>
-                                                <TableCell>{formatCurrency(car.price)}</TableCell>
-                                                <TableCell>{getStatusBadge(car.status)}</TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size='sm'
-                                                        className='p-0 h-9 w-9'
-                                                        onClick={() => handleToggleFeatured(car)}
-                                                        disabled={updatingCar}
-                                                    >
-                                                        {car.featured ? (
-                                                            <Star className='h-5 w-5 text-amber-500 fill-amber-500' />
-                                                        ) : (
-                                                            <StarOff className='h-5 w-5 text-gray-400 fill-gray-400' />
-                                                        )}
-                                                    </Button>
-                                                </TableCell>
-                                                <TableCell className='text-right'>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className='p-0 h-9 w-9'>
-                                                                <MoreHorizontal className='h-5 w-5' />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuLabel className='font-bold'>Manage</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                onClick={() => router.push(`/cars/${car.id}`)}>
-                                                                <Eye className='w-4 h-4 mr-2' />
-                                                                View
-                                                            </DropdownMenuItem>
 
-                                                            <DropdownMenuLabel>Status</DropdownMenuLabel>
+                                <TableBody>
+                                    {carsRes.data.map((car: Car) => (
+                                        <TableRow
+                                            key={car.id}
+                                            className="cursor-pointer hover:bg-muted/50 border-border"
+                                            onClick={(e) => {
+                                                // prevent row click when clicking inside dropdown
+                                                if ((e.target as HTMLElement).closest("button")) return;
+                                                router.push(`/admin/cars/${car.id}`);
+                                            }}
+                                        >
+                                            {/* Image */}
+                                            <TableCell className="">
+                                                {car.images?.[0] ? (
+                                                    <Image
+                                                        src={car.images[0]}
+                                                        alt={`${car.make} ${car.model}`}
+                                                        width={56}
+                                                        height={56}
+                                                        className="object-cover rounded-md"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-14 w-14 items-center justify-center bg-muted rounded-md">
+                                                        <CarIcon className="h-8 w-8 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </TableCell>
+
+                                            {/* Make / Model */}
+                                            <TableCell className="font-medium">
+                                                {car.make} {car.model}
+                                            </TableCell>
+
+                                            {/* Year */}
+                                            <TableCell>{car.year}</TableCell>
+
+                                            {/* Price */}
+                                            <TableCell>{formatCurrencyVND(getCarPrice(car))}</TableCell>
+
+                                            {/* Status badge */}
+                                            <TableCell>{getStatusBadge(car.status)}</TableCell>
+
+                                            {/* Featured */}
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleFeatured(car);
+                                                    }}
+                                                    disabled={updating}
+                                                >
+                                                    {car.featured ? (
+                                                        <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
+                                                    ) : (
+                                                        <StarOff className="h-5 w-5 text-muted-foreground" />
+                                                    )}
+                                                </Button>
+                                            </TableCell>
+
+                                            {/* Actions */}
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <MoreHorizontal className="h-5 w-5" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Manage</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                router.push(`/cars/${car.id}`);
+                                                            }}
+                                                        >
+                                                            <Eye className="mr-2 h-4 w-4" /> View
+                                                        </DropdownMenuItem>
+
+                                                        <DropdownMenuLabel>Status</DropdownMenuLabel>
+                                                        {["AVAILABLE", "RESERVED", "RENTED", "PENDING", "SOLD"].map((s) => (
                                                             <DropdownMenuItem
-                                                                onClick={() => handleUpdateStatus(car, 'AVAILABLE')}
-                                                                disabled={(car.status === 'AVAILABLE') || (updatingCar)}>
-                                                                <Check className='w-4 h-4 mr-2' />
-                                                                Set Available
-                                                            </DropdownMenuItem>
-                                                            
-                                                            <DropdownMenuItem
-                                                                onClick={() => handleUpdateStatus(car, 'PENDING')}
-                                                                disabled={(car.status === 'PENDING') || (updatingCar)}>
-                                                                <WatchIcon className='w-4 h-4 mr-2' />
-                                                                Set Pending
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem
-                                                                onClick={() => handleUpdateStatus(car, 'SOLD')}
-                                                                disabled={(car.status === 'SOLD') || (updatingCar)}>
-                                                                <SparklesIcon className='w-4 h-4 mr-2' />
-                                                                Set Sold
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem
-                                                                className='text-red-600'
-                                                                onClick={() => { setCarToDelete(car); setDeleteDialogOpen(true); }}
+                                                                key={s}
+                                                                disabled={car.status === s || updating}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setStatus(car, s);
+                                                                }}
                                                             >
-                                                                <Trash className='w-4 h-4 mr-2' />
-                                                                Delete
+                                                                {s === "AVAILABLE" && <Check className="mr-2 h-4 w-4" />}
+                                                                {s === "RESERVED" && <SparklesIcon className="mr-2 h-4 w-4" />}
+                                                                {s === "RENTED" && <SparklesIcon className="mr-2 h-4 w-4" />}
+                                                                {s === "PENDING" && <WatchIcon className="mr-2 h-4 w-4" />}
+                                                                {s === "SOLD" && <SparklesIcon className="mr-2 h-4 w-4" />}
+                                                                Set {s[0] + s.slice(1).toLowerCase()}
                                                             </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                    <TableRow>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell></TableCell>
-                                    </TableRow>
+                                                        ))}
+
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-destructive"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCarToDelete(car);
+                                                                setDeleteOpen(true);
+                                                            }}
+                                                        >
+                                                            <Trash className="mr-2 h-4 w-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
                                 </TableBody>
-                                {carsData?.pagination && carsData.pagination.totalPages > 1 && (
+
+                                {/* Pagination inside table footer */}
+                                {totalPages > 1 && (
                                     <TableFooter>
                                         <TableRow>
-                                            <TableCell colSpan={7} className="px-0">
+                                            <TableCell colSpan={7} className="p-0">
                                                 <PaginationToolbar
                                                     pagination={{ page, limit, total: totalItems, totalPages }}
                                                     onPageChange={handlePageChange}
@@ -354,55 +392,41 @@ const CarList = () => {
                                     </TableFooter>
                                 )}
                             </Table>
-
                         </div>
                     ) : (
-                        <div className="flex flex-col justify-center items-center py-12 text-gray-500">
-                            <CarIcon className="w-12 h-12 mb-2" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">No cars found.</h3>
-                            <p className="text-gray-500 mb-4">
-                                {
-                                    searchTerm ? `No cars match your search "${searchTerm}".` : "You haven't added any cars yet."
-                                }
-                            </p>
-                            <Button onClick={() => router.push('/admin/cars/create')}>Add Car</Button>
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                            <CarIcon className="h-12 w-12 mb-3" />
+                            <p className="text-lg font-medium">No cars found.</p>
+                            <Button
+                                className="mt-4"
+                                onClick={() => router.push("/admin/cars/create")}
+                            >
+                                Add Car
+                            </Button>
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            <Dialog open={!!deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            {/* Delete confirmation */}
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Delete Car</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete {carToDelete?.make} ({carToDelete?.model})? This action cannot be undone.
+                            Are you sure you want to delete <strong>{carToDelete?.make} {carToDelete?.model}</strong>? This cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deletingCar}>
+                        <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={() => {
-                            if (carToDelete) {
-                                handleDeleteCar()
-                            }
-                        }}
-                            disabled={deletingCar}
-                        >
-                            {deletingCar ? (
-                                <>
-                                    <Loader2 className="animate-spin" /> Deleting...
-                                </>
-                            ) : (
-                                <>Delete</>
-                            )}
+                        <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                            {deleting ? "Deleting…" : "Delete"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
-    )
+    );
 }
-
-export default CarList

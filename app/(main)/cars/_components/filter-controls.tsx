@@ -48,7 +48,6 @@ const CarFilterControls = ({filters, currentFilters, onFilterChange, onClearFilt
         },
         
     ]
-    console.log(filterSections,'filterSections');
   return (
     <div>
         <div className="space-y-4">
@@ -73,7 +72,7 @@ const CarFilterControls = ({filters, currentFilters, onFilterChange, onClearFilt
                         <span>{section.title}</span>
                         {section.currentValue && (
                             <Button
-                                className='text-xs text-gray-600 flex items-center cursor-pointer'
+                                className='text-xs  flex items-center cursor-pointer'
                                 onClick={() => onClearFilter && onClearFilter(section.id)}
                                 variant='link'
                             >
@@ -88,14 +87,14 @@ const CarFilterControls = ({filters, currentFilters, onFilterChange, onClearFilt
                             <Badge
                                 key={option.value}
                                 variant={section.currentValue === option.value ? 'default' : 'outline'}
-                                className={`m-1 cursor-pointer ${section.currentValue === option.value ? 'bg-bg-cma text-white' : ''}`}
+                                className={`m-1 cursor-pointer ${section.currentValue === option.value ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent hover:text-accent-foreground'}`}
                                 onClick={() => section.onChange(
                                     section.currentValue === option.value ? '' : option.value
                                 )}
                             >
                                 {option.label}
                                 {section.currentValue === option.value && (
-                                    <Check className='ml-1 h-3 w-3' />
+                                    <Check className='ml-1 h-3 w-3 text-accent2' />
 
                                 )}
                             </Badge>

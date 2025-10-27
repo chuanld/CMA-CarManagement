@@ -15,12 +15,12 @@ export const metadata = {
 const CarListPage = async () => {
     const {data:filtersData,} = await getCarFilters();
   return (
-    <div className='container mx-auto px-4 py-12'>
+    <div className='container mx-auto px-4 py-12 bg-background text-foreground'>
       <Suspense fallback={<div>Loading...</div>}>
       <section className="mb-8">
         <BreadcrumbComponent />
       </section>
-       <div className='flex flex-col lg:flex-row gap-8'>
+       <div className='flex flex-col lg:flex-row gap-8 bg-background text-foreground'>
         <div className='w-full lg:w-1/4 flex-shrink-0'>
             <CarFilters filters={filtersData} />
         </div>

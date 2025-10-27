@@ -16,14 +16,14 @@ import { Camera, Loader2, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import useFetch from '@/app/hooks/use-fetch';
-import { addCar, processCarImageAI } from '@/actions/cars';
+import { addCar, processCarImageAI, uploadImageToSupabase } from '@/actions/cars';
 import { useRouter } from 'next/navigation';
 import * as z from "zod";
 import { carDetailsFromAI } from '@/types/car';
 import { ApiResponse } from '@/types/api';
 
-const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Hydrogen', 'Plug-in Hybrid','Gasoline'] as const;
-const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic'] as const;
+const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Hydrogen', 'Plug-in Hybrid', 'Gasoline'] as const;
+const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic','CVT', 'Dual-Clutch'] as const;
 const bodyTypes = ['Sedan', 'SUV', 'Hatchback', 'Coupe', 'Convertible', 'Wagon', 'Van', 'Truck'] as const;
 
 const carStatuses = ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'PENDING'] as const;
@@ -32,6 +32,7 @@ const carStatuses = ['AVAILABLE', 'UNAVAILABLE', 'SOLD', 'PENDING'] as const;
 //   file: File;
 //   preview: string;
 // };
+const carTypes = ["SALE", "RENT", "BOTH"] as const;
 
 const AddCarForm = () => {
   const [activeTab, setActiveTab] = useState<string>('ai');
@@ -39,7 +40,7 @@ const AddCarForm = () => {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   // For AI Tab
-  const [imageAiPreview, setImageAiPreview] = useState< Blob | null>(null);
+  const [imageAiPreview, setImageAiPreview] = useState<Blob | null>(null);
   const [uploadedImageAI, setUploadedImageAI] = useState<File | null>(null);
 
   const router = useRouter()
@@ -51,7 +52,7 @@ const AddCarForm = () => {
       const year = parseInt(val);
       return !isNaN(year) && year >= 1900 && year <= new Date().getFullYear() + 1;
     }, "Valid year required"),
-    price: z.string().min(1, "Price is required"),
+    // price: z.string().min(1, "Price is required"), refactor business logic later
     mileage: z.string().min(1, "Mileage is required"),
     color: z.string().min(1, "Color is required"),
     fuelType: z.string().min(1, "Fuel type is required"),
@@ -59,9 +60,18 @@ const AddCarForm = () => {
     bodyType: z.string().min(1, "Body type is required"),
     seats: z.string().optional(),
     description: z.string().min(10, "Description must be at least 10 characters"),
-    status: z.enum(["AVAILABLE", "UNAVAILABLE", "SOLD"]),
+    status: z.enum(["AVAILABLE", "SOLD", "MAINTENANCE", "PENDING"]).default("AVAILABLE"),
     featured: z.boolean().default(false),
     confidence: z.string().optional(),
+
+    //v3 fields
+    // --- New fields ---
+    carType: z.enum(["SALE", "RENT", "BOTH"]).default("SALE"),
+    negotiable: z.boolean().default(false),
+    salePrice: z.string().optional().refine((val) => !val || parseFloat(val) >= 0, "Price must be >= 0"),
+    rentHourlyPrice: z.string().optional().refine((val) => !val || parseFloat(val) >= 0, "Hourly price must be >= 0"),
+    rentDailyPrice: z.string().optional().refine((val) => !val || parseFloat(val) >= 0, "Daily price must be >= 0"),
+    deposit: z.string().optional().refine((val) => !val || parseFloat(val) >= 0, "Deposit must be >= 0"),
   })
 
   const { register, setValue, getValues, watch, handleSubmit, formState: { errors } } = useForm({
@@ -69,18 +79,25 @@ const AddCarForm = () => {
     defaultValues: {
       make: '',
       model: '',
-      year: '',
-      price: '',
-      mileage: '',
-      color: '',
+      year: '2025',
+      mileage: '50',
+      color: 'white',
       fuelType: 'Petrol',
-      transmission: 'Manual',
-      seats: '',
+      transmission: 'manual',
+      seats: '4',
       description: 'Type Description here...',
       status: 'AVAILABLE',
       featured: false,
       bodyType: 'Sedan',
       confidence: '',
+
+      //v3 fields
+      carType: 'SALE',
+      negotiable: false,
+      salePrice: '',
+      rentHourlyPrice: '',
+      rentDailyPrice: '',
+      deposit: '',
     }
   })
 
@@ -99,9 +116,15 @@ const AddCarForm = () => {
     const carData = {
       ...data,
       year: parseInt(data.year),
-      price: parseFloat(data.price),
       mileage: parseInt(data.mileage),
       seats: data.seats ? parseInt(data.seats) : null,
+      //v3 fields
+      carType: data.carType,
+      negotiable: (data.carType === "SALE" || data.carType === "BOTH") ? data.negotiable : undefined,
+      salePrice: (data.carType === "SALE" || data.carType === "BOTH") ? parseFloat(data.salePrice || "0") : undefined,
+      rentHourlyPrice: (data.carType === "RENT" || data.carType === "BOTH") ? parseFloat(data.rentHourlyPrice || "0") : undefined,
+      rentDailyPrice: (data.carType === "RENT" || data.carType === "BOTH") ? parseFloat(data.rentDailyPrice || "0") : undefined,
+      deposit: (data.carType === "RENT" || data.carType === "BOTH") ? parseFloat(data.deposit || "0") : undefined,
     };
 
     await addCarFn({
@@ -132,7 +155,7 @@ const AddCarForm = () => {
         if (e.target?.result) {
           newImages.push(e.target.result);
         }
-        // chỉ set state sau khi đọc xong hết
+     
         if (newImages.length === validFiles.length) {
           // const mappedFiles = validFiles.map((file) => ({ file, preview: URL.createObjectURL(file) }));
           setUploadedImages((prev) => [...prev, ...newImages]);
@@ -185,7 +208,7 @@ const AddCarForm = () => {
     fetchData: processImageFn,
     data: processImageResult,
     error: processImageError
-  } = useFetch<carDetailsFromAI>(processCarImageAI)
+  } = useFetch<carDetailsFromAI>(processCarImageAI);
 
   const processWithAi = async () => {
     if (!uploadedImageAI) {
@@ -210,7 +233,6 @@ const AddCarForm = () => {
       setValue('make', carDetails.make || '');
       setValue('model', carDetails.model || '');
       setValue('year', carDetails.year ? String(carDetails.year) : '');
-      setValue('price', carDetails.price ? (carDetails.price).toString() : '');
       setValue('mileage', carDetails.mileage ? String(carDetails.mileage) : '');
       setValue('color', carDetails.color || '');
       setValue('fuelType', carDetails.fuelType || 'Petrol');
@@ -219,7 +241,12 @@ const AddCarForm = () => {
       setValue('seats', carDetails.seats ? String(carDetails.seats) : '');
       setValue('description', carDetails.description || '');
       setValue('confidence', carDetails.confidence ? String(carDetails.confidence) : '');
-      
+
+      //v3 fields
+      setValue('salePrice', carDetails.salePrice ? String(carDetails.salePrice) : '');
+      setValue('rentHourlyPrice', carDetails.rentHourlyPrice ? String(carDetails.rentHourlyPrice) : '');
+      setValue('rentDailyPrice', carDetails.rentDailyPrice ? String(carDetails.rentDailyPrice) : '');
+      setValue('deposit', carDetails.deposit ? String(carDetails.deposit) : '');
 
       // Add the image to the uploaded images
       const reader = new FileReader();
@@ -252,7 +279,7 @@ const AddCarForm = () => {
             <CardHeader>
               <CardTitle>Car Details</CardTitle>
               <CardDescription>Fill the details of the car you want to add</CardDescription>
-              {!!watch('confidence') &&  (
+              {!!watch('confidence') && (
                 <div className="mt-4">
                   <Label htmlFor="confidence">Confidence Level</Label>
                   <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
@@ -303,16 +330,84 @@ const AddCarForm = () => {
                     {errors.year && <p className='text-sm text-red-600'>{errors.year.message}</p>}
                   </div>
 
-                  <div className='space-y-2'>
-                    <Label htmlFor='price'>Price</Label>
-                    <Input
-                      id='price'
-                      {...register('price')}
-                      placeholder='e.g., 30000'
-                      className={errors.price ? 'border-red-600' : ''}
-                    />
-                    {errors.price && <p className='text-sm text-red-600'>{errors.price.message}</p>}
+                  <div className="space-y-4">
+                    <Label>Bussiness type</Label>
+                    <div className="flex gap-4">
+                      {carTypes.map((type) => (
+                        <label key={type} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            value={type}
+                            {...register("carType")}
+                          />
+                          {type === "SALE" ? "For Sale" : type === "RENT" ? "For Rent" : "Sale & Rent"}
+                        </label>
+                      ))}
+                    </div>
                   </div>
+
+                  {(watch("carType") === "SALE" || watch("carType") === "BOTH") && (
+                    <>
+                      <div className='space-y-2'>
+                        <Label htmlFor='salePrice'>Sale Price</Label>
+                        <Input
+                          id='salePrice'
+                          {...register('salePrice')}
+                          placeholder='e.g., 30000'
+                          className={errors.salePrice ? 'border-red-600' : ''}
+                        />
+                        {errors.salePrice && <p className='text-sm text-red-600'>{errors.salePrice.message}</p>}
+                      </div>
+
+                      <div className='flex items-center gap-2'>
+                        <Checkbox
+                          id='negotiable'
+                          checked={watch('negotiable')}
+                          onCheckedChange={(checked) => setValue('negotiable', !!checked)}
+                        />
+                        <Label htmlFor='negotiable'>Negotiable Price</Label>
+                      </div>
+                    </>
+                  )}
+
+                  {(watch("carType") === "RENT" || watch("carType") === "BOTH") && (
+                    <>
+                      <div className='space-y-2'>
+                        <Label htmlFor='rentHourlyPrice'>Hourly Price</Label>
+                        <Input
+                          id='rentHourlyPrice'
+                          {...register('rentHourlyPrice')}
+                          placeholder='e.g., 10'
+                          className={errors.rentHourlyPrice ? 'border-red-600' : ''}
+                        />
+                        {errors.rentHourlyPrice && <p className='text-sm text-red-600'>{errors.rentHourlyPrice.message}</p>}
+                      </div>
+
+                      <div className='space-y-2'>
+                        <Label htmlFor='rentDailyPrice'>Daily Price</Label>
+                        <Input
+                          id='rentDailyPrice'
+                          {...register('rentDailyPrice')}
+                          placeholder='e.g., 50'
+                          className={errors.rentDailyPrice ? 'border-red-600' : ''}
+                        />
+                        {errors.rentDailyPrice && <p className='text-sm text-red-600'>{errors.rentDailyPrice.message}</p>}
+                      </div>
+
+                      <div className='space-y-2'>
+                        <Label htmlFor='deposit'>Deposit</Label>
+                        <Input
+                          id='deposit'
+                          {...register('deposit')}
+                          placeholder='e.g., 100'
+                          className={errors.deposit ? 'border-red-600' : ''}
+                        />
+                        {errors.deposit && <p className='text-sm text-red-600'>{errors.deposit.message}</p>}
+                      </div>
+                    </>
+                  )}
+
+
 
 
 
@@ -363,7 +458,7 @@ const AddCarForm = () => {
                       defaultValue={getValues('transmission')}
                     >
                       <SelectTrigger className={`${errors.transmission ? 'border-red-600' : ''} w-full`} >
-                        <SelectValue placeholder="Select Transmission Type" />
+                        <SelectValue placeholder="Select Transmission Type" defaultValue={getValues('transmission')} />
                       </SelectTrigger>
                       <SelectContent>
                         {transmissionTypes.map((type) => (

@@ -19,6 +19,7 @@ export async function getFeaturedCars(limit: number = 3) {
       where: { featured: true },
       take: limit,
       orderBy: { createdAt: "desc" },
+      include: {saleInfo:true, rentInfo:true},
     });
     return cars.map((car) => serializeCarData(car));
   } catch (err: unknown) {

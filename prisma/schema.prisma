@@ -15,13 +15,16 @@ model User {
   name        String?
   imageUrl    String?
   phone       String?
+  role        UserRole           @default(USER)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
-  role        UserRole           @default(USER)
+
+  // Relations
   dealers     Dealer[]           @relation("UserDealer")
   reviews     Review[]
-  testDrives  TestDriveBooking[]
+  bookings    Booking[]          @relation("UserBookings")
   savedCars   UserSavedCar[]
+  purchases   Purchase[]         @relation("UserPurchases")
 }
 
 model Dealer {
@@ -32,16 +35,19 @@ model Dealer {
   email        String        @unique
   description  String?
   logoUrl      String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  ownerId      String?
   archived     Boolean       @default(false)
   avgRating    Float?        @default(0)
   reviewCount  Int           @default(0)
-  cars         Car[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  ownerId      String?
   owner        User?         @relation("UserDealer", fields: [ownerId], references: [id])
+  cars         Car[]
   reviews      Review[]      @relation("DealerReviews")
   workingHours WorkingHour[]
+  bookings     Booking[]     @relation("DealerBookings")
+  purchases    Purchase[]    @relation("DealerPurchases")
 
   @@index([name])
 }
@@ -51,9 +57,8 @@ model Car {
   make              String
   model             String
   year              Int
-  price             Decimal            @db.Decimal(13, 2)
-  mileage           Int
   color             String
+  mileage           Int
   fuelType          String
   transmission      String
   bodyType          String
@@ -66,19 +71,22 @@ model Car {
   updatedAt         DateTime           @updatedAt
   avgRating         Float?             @default(0)
   countViews        Int                @default(0)
-  dealerId          String?
   durationView      Int                @default(0)
   reviewCount       Int                @default(0)
   statusChangedAt   DateTime?
   statusChangedBy   String?
-  dealer            Dealer?            @relation(fields: [dealerId], references: [id])
-  reviews           Review[]           @relation("CarReviews")
-  testDriveBookings TestDriveBooking[]
+
+  dealerId          String?
+  dealer            Dealer?            @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  saleInfo          SaleInfo?
+  rentInfo          RentInfo?
+  bookings          Booking[]          @relation("CarBookings")
   savedBy           UserSavedCar[]
+  reviews           Review[]           @relation("CarReviews")
+  purchases         Purchase[]         @relation("CarPurchases")
 
   @@index([make, model])
   @@index([bodyType])
-  @@index([price])
   @@index([year])
   @@index([status])
   @@index([fuelType])
@@ -86,15 +94,53 @@ model Car {
   @@index([countViews])
 }
 
+model SaleInfo {
+  id              String      @id @default(uuid())
+  carId           String      @unique
+  price           Decimal     @db.Decimal(13, 2)
+  negotiable      Boolean     @default(false)
+  status          SaleStatus  @default(AVAILABLE)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  statusChangedAt DateTime?
+  statusChangedBy String?
+
+  car             Car         @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([price])
+  @@index([status])
+}
+
+model RentInfo {
+  id              String      @id @default(uuid())
+  carId           String      @unique
+  hourlyPrice     Decimal     @db.Decimal(13, 2)
+  dailyPrice      Decimal?    @db.Decimal(13, 2)
+  deposit         Decimal?    @db.Decimal(13, 2)
+  available       Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  statusChangedAt DateTime?
+  statusChangedBy String?
+
+  car             Car         @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([hourlyPrice])
+  @@index([available])
+}
+
 model WorkingHour {
   id        String    @id @default(uuid())
   dayOfWeek DayOfWeek
   isOpen    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  dealerId  String
   openTime  Int
   closeTime Int
+  dealerId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
   dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
 
   @@unique([dealerId, dayOfWeek])
@@ -103,38 +149,70 @@ model WorkingHour {
   @@index([isOpen])
 }
 
+model Booking {
+  id              String        @id @default(uuid())
+  carId           String
+  userId          String
+  dealerId        String
+  bookingType     BookingType   @default(RENTAL)
+  bookingDate     DateTime      @db.Date
+  startTime       DateTime
+  endTime         DateTime
+  totalPrice      Decimal?      @db.Decimal(13, 2) // For rentals
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  statusChangedAt DateTime?
+  statusChangedBy String?
+
+  car             Car           @relation("CarBookings", fields: [carId], references: [id], onDelete: Cascade)
+  user            User          @relation("UserBookings", fields: [userId], references: [id], onDelete: Cascade)
+  dealer          Dealer        @relation("DealerBookings", fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([userId])
+  @@index([dealerId])
+  @@index([bookingDate])
+  @@index([status])
+  @@index([bookingType])
+  @@index([carId, bookingDate])
+}
+
+model Purchase {
+  id              String         @id @default(uuid())
+  carId           String
+  userId          String
+  dealerId        String
+  price           Decimal        @db.Decimal(13, 2)
+  status          PurchaseStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  statusChangedAt DateTime?
+  statusChangedBy String?
+
+  car             Car            @relation("CarPurchases", fields: [carId], references: [id], onDelete: Cascade)
+  user            User           @relation("UserPurchases", fields: [userId], references: [id], onDelete: Cascade)
+  dealer          Dealer         @relation("DealerPurchases", fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@index([carId])
+  @@index([userId])
+  @@index([dealerId])
+  @@index([status])
+}
+
 model UserSavedCar {
   id      String   @id @default(uuid())
   userId  String
   carId   String
   savedAt DateTime @default(now())
+
   car     Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, carId])
   @@index([userId])
   @@index([carId])
-}
-
-model TestDriveBooking {
-  id          String        @id @default(uuid())
-  carId       String
-  userId      String
-  bookingDate DateTime      @db.Date
-  startTime   String
-  endTime     String
-  status      BookingStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  car         Car           @relation(fields: [carId], references: [id], onDelete: Cascade)
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([carId])
-  @@index([userId])
-  @@index([bookingDate])
-  @@index([status])
-  @@index([carId, bookingDate])
 }
 
 model Review {
@@ -146,6 +224,7 @@ model Review {
   comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   car       Car?     @relation("CarReviews", fields: [carId], references: [id], onDelete: Cascade)
   dealer    Dealer?  @relation("DealerReviews", fields: [dealerId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -164,8 +243,37 @@ enum CarStatus {
   AVAILABLE
   RESERVED
   SOLD
+  RENTED
   MAINTENANCE
   PENDING
+}
+
+enum SaleStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  NEGOTIATION
+}
+
+enum PurchaseStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingType {
+  RENTAL
+  TEST_DRIVE
 }
 
 enum DayOfWeek {
@@ -176,12 +284,4 @@ enum DayOfWeek {
   FRIDAY
   SATURDAY
   SUNDAY
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  COMPLETED
-  CANCELLED
-  NO_SHOW
 }

@@ -20,7 +20,7 @@ const FaQ = ({ faqItems }: FaQProps) => {
   }
 
   return (
-    <section className="py-16 sm:py-24 bg-gradient-to-b from-gray-50 to-gray-100">
+    <section className="py-16 sm:py-24 **bg-gradient-to-b from-secondary to-muted**"> {/* 1 */}
       <div className="max-w-5xl mx-auto px-4 sm:px-8">
         <motion.div
           className="text-center mb-12"
@@ -28,10 +28,10 @@ const FaQ = ({ faqItems }: FaQProps) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-bold **text-foreground** mb-4 tracking-tight"> {/* 2 */}
             Frequently Asked Questions
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg **text-muted-foreground** max-w-2xl mx-auto"> {/* 3 */}
             Everything you need to know about Car MarketAI
           </p>
         </motion.div>
@@ -40,7 +40,7 @@ const FaQ = ({ faqItems }: FaQProps) => {
           {faqItems.map((faq, index) => (
             <motion.div
               key={index}
-              className="bg-white rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-all duration-300"
+              className="**card rounded-2xl hover:shadow-xl**" 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1, duration: 0.3 }}
@@ -48,14 +48,16 @@ const FaQ = ({ faqItems }: FaQProps) => {
             >
               <button
                 onClick={() => toggleFAQ(index)}
-                className="w-full px-6 py-5 text-left flex justify-between items-center hover:bg-gray-50 transition-colors rounded-t-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-6 py-5 text-left flex justify-between items-center 
+                           **hover:bg-accent** transition-colors rounded-t-2xl 
+                           focus:outline-none focus:ring-2 focus:ring-primary" 
                 aria-expanded={openIndex === index}
                 aria-controls={`faq-answer-${index}`}
                 aria-label={`Toggle FAQ: ${faq.question}`}
               >
-                <h3 className="text-lg font-semibold text-gray-900 pr-4">{faq.question}</h3>
+                <h3 className="text-lg font-semibold **text-foreground** pr-4">{faq.question}</h3> {/* 6 */}
                 <ChevronDown
-                  className={`w-6 h-6 text-gray-600 transition-transform duration-300 ${
+                  className={`w-6 h-6 **text-muted-foreground** transition-transform duration-300 ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                 />
@@ -70,7 +72,7 @@ const FaQ = ({ faqItems }: FaQProps) => {
                     transition={{ duration: 0.3, ease: 'easeOut' }}
                     className="px-6 pb-5 pt-2"
                   >
-                    <p className="text-gray-700 leading-relaxed text-base">{faq.answer}</p>
+                    <p className="**text-muted-foreground** leading-relaxed text-base">{faq.answer}</p> {/* 7 */}
                   </motion.div>
                 )}
               </AnimatePresence>

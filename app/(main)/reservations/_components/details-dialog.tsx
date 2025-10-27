@@ -4,9 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Car, MapPin, Users, Mail, Phone } from "lucide-react";
 import { TestDriveBooking } from "@/types/user";
+import { Booking } from "@/types/booking";
+import { displayDateTime } from "../../bookings/helper/handle-bookings";
 
 interface DialogViewDetailsProps {
-  booking: TestDriveBooking;
+  booking: Booking;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -41,7 +43,7 @@ export function DialogViewDetails({ booking, isOpen, onClose }: DialogViewDetail
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Clock className="h-5 w-5" />
-              <span>{booking.startTime} - {booking.endTime}</span>
+              <span>{displayDateTime(booking.startTime)} - {displayDateTime(booking.endTime)}</span>
             </div>
           </div>
 

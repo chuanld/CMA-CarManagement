@@ -122,11 +122,11 @@ export default function DealerList() {
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 card-header"
                 >
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Dealers Management</h1>
-                        <p className="text-muted-foreground">
+                        <p className="text-muted">
                             Manage and monitor all registered dealers
                         </p>
                     </div>
@@ -156,24 +156,24 @@ export default function DealerList() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-lg border"
+                    className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-lg border-border"
                 >
                     <div className="flex-1">
                         <Input
                             placeholder="Search dealers by name or email..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="max-w-sm"
+                            className="max-w-sm border-border"
                         />
                     </div>
 
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-muted-foreground">Sort by:</span>
                         <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-[140px] border-border">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className='bg-card'>
                                 <SelectItem value="name">Name</SelectItem>
                                 <SelectItem value="avgRating">Rating</SelectItem>
                                 <SelectItem value="createdAt">Created</SelectItem>
@@ -181,10 +181,10 @@ export default function DealerList() {
                         </Select>
 
                         <Select value={sortOrder} onValueChange={(value: any) => setSortOrder(value)}>
-                            <SelectTrigger className="w-[80px]">
+                            <SelectTrigger className="w-[80px] border-border">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className='bg-card'>
                                 <SelectItem value="asc">ASC</SelectItem>
                                 <SelectItem value="desc">DESC</SelectItem>
                             </SelectContent>
@@ -197,16 +197,16 @@ export default function DealerList() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="rounded-md border bg-card"
+                    className="rounded-md border bg-card border-none"
                 >
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
+                    <Table className=''>
+                        <TableHeader className=''>
+                            <TableRow className='border-border bg-card'>
                                 <TableHead className="w-[40px]">Logo</TableHead>
                                 <TableHead>Name</TableHead>
                                 {/* <TableHead>Owner</TableHead> */}
                                 <TableHead>Email</TableHead>
-                                <TableHead>Phone</TableHead>
+                                <TableHead>Phone</TableHead>    
                                 <TableHead>Address</TableHead>
                                 <TableHead className="text-center">
                                     <Car className="w-4 h-4 mx-auto" />
@@ -260,29 +260,28 @@ export default function DealerList() {
                                         </TableCell>
 
                                         <TableCell className="font-medium">
-                                            <TooltipProvider >
-                                                <Tooltip>
-                                                    <TooltipTrigger
 
-                                                        className="hover:underline cursor-pointer">
-                                                        <span className="hover:underline cursor-pointer">{dealer.name}</span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className='flex flex-nowrap gap-2'>
+                                            <TooltipProvider >
+
+                                                <Tooltip>
+                                                    <TooltipTrigger className="hover:underline cursor-pointer">
                                                         <EditDealerDialog
                                                             dealerId={dealer.id}
-                                                            isOpen={isOpenEdit}
+                                                            // isOpen={isOpenEdit}
                                                             onSuccess={() => {
                                                                 setRefetchFlag(prev => !prev);
                                                             }}
-                                                        ><p className='hover:text-lg cursor-pointer'
-                                                            onClick={() => setIsOpenEdit(true)}>Quick edit?</p>
-                                                        </EditDealerDialog>{' '}
-                                                        <span>or</span>{' '}
-                                                        <p
-                                                            onClick={() => router.push(`/admin/dealers/${dealer.id}`)}
-                                                            className="font-bold hover:text-lg cursor-pointer">
-                                                            To details
-                                                        </p>
+                                                        >
+                                                                                                                    <span className="hover:underline cursor-pointer">{dealer.name}</span>
+
+                                                        </EditDealerDialog>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className='flex flex-nowrap gap-2'>
+                                                        <p className='hover:text-lg cursor-pointer'
+                                                        >Quick edit?</p>
+
+
+
 
                                                     </TooltipContent>
 
@@ -304,7 +303,7 @@ export default function DealerList() {
                                             </TooltipProvider>
                                         </TableCell> */}
 
-                                        <TableCell className="truncate max-w-[200px]">
+                                        < TableCell className="truncate max-w-[200px]" >
                                             <div className="flex items-center gap-2">
                                                 <Mail className="w-4 h-4 text-muted-foreground" />
                                                 <span className="truncate">{dealer.email}</span>
@@ -387,17 +386,8 @@ export default function DealerList() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    {/* <DropdownMenuItem>
 
-                                                        <div className='flex items-center gap-2'
-                                                            onClick={() => setIsOpenEdit(true)}
-                                                        >
-                                                            <FastForward className="w-4 h-4 mr-2" />
-                                                                Quick Edit
-                                                            </div>
-
-                                                    </DropdownMenuItem> */}
-                                                    <DropdownMenuItem   
+                                                    <DropdownMenuItem
                                                         disabled={loadingDealers}
                                                         className="cursor-pointer"
                                                         onClick={() => router.push(`/admin/dealers/${dealer.id}`)}
@@ -477,17 +467,18 @@ export default function DealerList() {
                             )}
                         </TableBody>
                     </Table>
-                </motion.div>
+                </motion.div >
 
 
                 {/* Stats Cards */}
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                < motion.div
+                    initial={{ opacity: 0, y: 10 }
+                    }
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                     className="grid grid-cols-1 md:grid-cols-4 gap-4"
                 >
-                    <div className="bg-card border rounded-lg p-6">
+                    <div className="bg-card border-muted-foreground rounded-lg p-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Total Dealers</p>
@@ -496,7 +487,7 @@ export default function DealerList() {
                             <Car className="w-8 h-8 text-primary" />
                         </div>
                     </div>
-                    <div className="bg-card border rounded-lg p-6">
+                    <div className="bg-card border-muted-foreground rounded-lg p-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Active</p>
@@ -509,7 +500,7 @@ export default function DealerList() {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-card border rounded-lg p-6">
+                    <div className="bg-card border-muted-foreground rounded-lg p-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Archived</p>
@@ -520,7 +511,7 @@ export default function DealerList() {
                             <Archive className="w-8 h-8 text-muted-foreground" />
                         </div>
                     </div>
-                    <div className="bg-card border rounded-lg p-6">
+                    <div className="bg-card border-muted-foreground rounded-lg p-6">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Avg Rating</p>
@@ -533,7 +524,7 @@ export default function DealerList() {
                             <Star className="w-8 h-8 text-yellow-500" />
                         </div>
                     </div>
-                </motion.div>
+                </motion.div >
 
             </div >
 

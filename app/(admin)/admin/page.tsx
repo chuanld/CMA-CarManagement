@@ -1,6 +1,7 @@
 import { getDashboardStats } from '@/actions/admin';
 import React from 'react'
-import { Dashboard } from './_components/dashboard';
+import { DashboardStats } from '@/types/api';
+import Dashboard from './_components/dashboard';
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
@@ -10,10 +11,15 @@ export const metadata = {
 
 const AdminPage = async () => {
   const dashboardData = await getDashboardStats();
+
+  if (!dashboardData.success) {
+    return <div className='p-6'>Failed to load dashboard data.</div>;
+  }
+  const stats = dashboardData.data;
+  console.log(stats,'stats')
   return (
     <div className='p-6'>
-      <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
-      <Dashboard initialData={dashboardData as any} />
+      <Dashboard initialData={stats} />
     </div>
   )
 }

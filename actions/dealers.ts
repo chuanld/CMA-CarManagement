@@ -7,7 +7,6 @@ import { auth } from "@clerk/nextjs/server";
 import { DayOfWeek } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { fa } from "zod/v4/locales";
 
 export async function getDealers() {
   try {
@@ -343,11 +342,16 @@ export async function updateDealer(
 
     let nestedWorkingHours: any = undefined;
     if (workingHours && workingHours.length > 0) {
-      const serialWorkingHours = workingHours.map((wh: any) =>
-        serializeWorkingHours(wh)
-      );
+      const serialWorkingHours = workingHours.map((wh: any) =>{
+        return {
+          dayOfWeek: wh.dayOfWeek,
+          isOpen: wh.isOpen,
+          openTime: wh.openTime,
+          closeTime: wh.closeTime,
+        };
+      });
       nestedWorkingHours = {
-        deleteMany: { dealerId: dealerId },
+        deleteMany: {},
         create: serialWorkingHours,
       };
     }
@@ -368,6 +372,7 @@ export async function updateDealer(
         dealerId
       );
     }
+
 
     const updatedDealer = await db.dealer.update({
       where: { id: dealerId },

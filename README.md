@@ -93,3 +93,9 @@ Phiên bản **3.0** sẽ mở rộng mô hình hiện tại với:
 Nhánh phát triển cho 3.0:  
 ```bash
 git checkout -b release/3.0
+
+
+
+//Process handle datetim
+FE: parse localaString dislay -> fill input (string) => UTC DateTime => Send BE
+BE: Luu UTC db => get time => ISOString => Send FE

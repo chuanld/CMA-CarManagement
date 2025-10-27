@@ -3,254 +3,190 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/prisma";
-import { serializeCarData } from "@/lib/helper";
+import { serializeCarData, serializeDealerData, serializeWorkingHours } from "@/lib/helper";
 import { TestDriveBooking } from "@/types/user";
+import { BookingType, DayOfWeek } from "@prisma/client";
 
-/**
- * Books a test drive for a car
- */
+// /**
+//  * Book a test drive for a car
+//  */
 export async function bookTestDrive({
   carId,
   bookingDate,
   startTime,
-  endTime,
   notes,
-}: TestDriveBooking) {
+}: {
+  carId: string;
+  bookingDate: string; // e.g., "2025-10-21"
+  startTime: string; // e.g., "10:00"
+  notes?: string;
+}) {
   try {
-    // Authenticate user
     const { userId } = await auth();
     if (!userId) throw new Error("You must be logged in to book a test drive");
 
-    // Find user in our database
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
     });
+    if (!user) throw new Error("User not found");
 
-    if (!user) throw new Error("User not found in database");
-
-    // Check if car exists and is available
-    const car = await db.car.findFirst({
-      where: { id: carId, status: "AVAILABLE" },
-      include: { dealer: {include: {workingHours: true}}}
+    const car = await db.car.findUnique({
+      where: { id: carId },
+      include: { dealer: { include: { workingHours: true } } },
     });
+    if (!car || car.status !== "AVAILABLE")
+      throw new Error("Car not available for test drive");
 
-    if (!car) throw new Error("Car not available for test drive");
-
-    //check working hours of dealer
     const dealer = car.dealer;
-    if (dealer && dealer.workingHours) {
-      const dayName = new Date(bookingDate).toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase() as any;
-      const schedule = dealer.workingHours.find((wh)=>wh.dayOfWeek === dayName && wh.isOpen)
+    if (!dealer) throw new Error("Dealer information not found for this car");
 
-      if (!schedule) {
-        throw new Error(`Dealer is closed on ${dayName}s. Please select another date.`);
-      }
+    // Compute DateTime objects for startTime and endTime (+1 hour)
+    const startDateTime = new Date(`${bookingDate}T${startTime}:00`);
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setHours(endDateTime.getHours() + 1);
+
+    // Check dealer working hours (optional but useful)
+    if (dealer.workingHours?.length) {
+      const dayName = new Date(bookingDate)
+        .toLocaleDateString("en-US", { weekday: "long" })
+        .toUpperCase() as keyof typeof DayOfWeek;
+
+      const schedule = dealer.workingHours.find(
+        (wh) => wh.dayOfWeek === dayName && wh.isOpen
+      );
+
+      if (!schedule)
+        throw new Error(
+          `Dealer is closed on ${dayName}. Please select another date.`
+        );
 
       const openHour = Math.floor(schedule.openTime / 100);
       const closeHour = Math.floor(schedule.closeTime / 100);
-      const [startH] = startTime.split(':').map(Number);
-      const [endH] = endTime.split(':').map(Number);
+      const startH = startDateTime.getHours();
+      const endH = endDateTime.getHours();
 
       if (startH < openHour || endH > closeHour) {
-        throw new Error(`Test drive time must be within dealer working hours: ${String(openHour).padStart(2,'0')}:00 - ${String(closeHour).padStart(2,'0')}:00`);
+        throw new Error(
+          `Test drive must be within dealer working hours: ${String(
+            openHour
+          ).padStart(2, "0")}:00 - ${String(closeHour).padStart(2, "0")}:00`
+        );
       }
     }
 
-    // Check book overlap
-    const existingBooking = await db.testDriveBooking.findFirst({
+    // Prevent overlapping bookings
+    const existingBooking = await db.booking.findFirst({
       where: {
         carId,
         bookingDate: new Date(bookingDate),
+        bookingType: BookingType.TEST_DRIVE,
         status: { in: ["PENDING", "CONFIRMED"] },
-        OR: [
-          {
-            AND: [
-              { startTime: { lt: endTime } },
-              { endTime: { gt: startTime } },
-            ],
-          },
+        AND: [
+          { startTime: { lt: endDateTime } },
+          { endTime: { gt: startDateTime } },
         ],
       },
     });
 
-    if (existingBooking) {
-      throw new Error(
-        "This time slot is already booked. Please select another time."
-      );
-    }
+    if (existingBooking)
+      throw new Error("This time slot is already booked. Please choose another.");
 
-    // Create the booking
-    const booking = await db.testDriveBooking.create({
+    // Create booking (1-hour fixed test drive)
+    const booking = await db.booking.create({
       data: {
         carId,
         userId: user.id,
+        dealerId: dealer.id,
+        bookingType: BookingType.TEST_DRIVE,
         bookingDate: new Date(bookingDate),
-        startTime,
-        endTime,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        totalPrice: null,
         notes: notes || null,
         status: "PENDING",
       },
     });
 
-    // Revalidate relevant paths
     revalidatePath(`/test-drive/${carId}`);
     revalidatePath(`/cars/${carId}`);
 
-    return {
-      success: true,
-      data: booking,
-    };
-  } catch (error: unknown) {
-    console.error("Error booking test drive:", error);
-    return {
-      success: false,
-      error: (error as Error).message || "Failed to book test drive",
-    };
+    return { success: true, data: booking };
+  } catch (err: unknown) {
+    console.error("bookTestDrive error:", err);
+    return { success: false, error: (err as Error).message };
   }
 }
 
-/**
- * Get user's test drive bookings - reservations page
- */
-export async function getUserTestDrives() {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
+// /**
+//  * Get all test drive bookings for the authenticated user
+//  */
+// export async function getUserTestDrives() {
+//   try {
+//     const { userId } = await auth();
+//     if (!userId) throw new Error("Unauthorized");
 
-    // Get the user from our database
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
-    });
+//     const user = await db.user.findUnique({ where: { clerkUserId: userId } });
+//     if (!user) throw new Error("User not found");
 
-    if (!user) {
-      return {
-        success: false,
-        error: "User not found",
-      };
-    }
+//     const bookings = await db.testDriveBooking.findMany({
+//       where: { userId: user.id },
+//       include: { car: { include: { dealer: true } }, user: true },
+//       orderBy: { bookingDate: "desc" },
+//     });
 
-    // Get user's test drive bookings
-    const bookings = await db.testDriveBooking.findMany({
-      where: { userId: user.id },
-      include: {
-        car: { include: { dealer: true } },
-        user: true,
+//     const formatted = bookings.map((b) => ({
+//       id: b.id,
+//       carId: b.carId,
+//       car: serializeCarData(b.car),
+//       bookingDate: b.bookingDate.toISOString(),
+//       startTime: b.startTime,
+//       endTime: b.endTime,
+//       status: b.status,
+//       notes: b.notes,
+//       createdAt: b.createdAt.toISOString(),
+//       updatedAt: b.updatedAt.toISOString(),
+//     }));
 
-      },
-      orderBy: { bookingDate: "desc" },
-    });
+//     return { success: true, data: formatted };
+//   } catch (err: unknown) {
+//     console.error("getUserTestDrives error:", err);
+//     return { success: false, error: (err as Error).message };
+//   }
+// }
 
-    // Format the bookings
-    const formattedBookings = bookings.map((booking) => ({
-      id: booking.id,
-      carId: booking.carId,
-      car: serializeCarData(booking.car),
-      bookingDate: booking.bookingDate.toISOString(),
-      startTime: booking.startTime,
-      endTime: booking.endTime,
-      status: booking.status,
-      notes: booking.notes,
-      createdAt: booking.createdAt.toISOString(),
-      updatedAt: booking.updatedAt.toISOString(),
-    }));
+// /**
+//  * Cancel a test drive booking
+//  */
+// export async function cancelTestDrive(bookingId: string) {
+//   try {
+//     const { userId } = await auth();
+//     if (!userId) throw new Error("Unauthorized");
 
-    return {
-      success: true,
-      data: formattedBookings,
-    };
-  } catch (error: unknown) {
-    console.error("Error fetching test drives:", error);
-    return {
-      success: false,
-      error: (error as Error).message,
-    };
-  }
-}
+//     const user = await db.user.findUnique({ where: { clerkUserId: userId } });
+//     if (!user) throw new Error("User not found");
 
-/**
- * Cancel a test drive booking
- */
-export async function cancelTestDrive(bookingId: string) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return {
-        success: false,
-        error: "Unauthorized",
-      };
-    }
+//     const booking = await db.testDriveBooking.findUnique({ where: { id: bookingId } });
+//     if (!booking) throw new Error("Booking not found");
 
-    // Get the user from our database
-    const user = await db.user.findUnique({
-      where: { clerkUserId: userId },
-    });
+//     if (booking.userId !== user.id && user.role !== "ADMIN") {
+//       throw new Error("Unauthorized to cancel this booking");
+//     }
 
-    if (!user) {
-      return {
-        success: false,
-        error: "User not found",
-      };
-    }
+//     if (["CANCELLED", "COMPLETED"].includes(booking.status)) {
+//       throw new Error(`Cannot cancel booking with status: ${booking.status}`);
+//     }
 
-    // Get the booking
-    const booking = await db.testDriveBooking.findUnique({
-      where: { id: bookingId },
-    });
+//     await db.testDriveBooking.update({
+//       where: { id: bookingId },
+//       data: { status: "CANCELLED" },
+//     });
 
-    if (!booking) {
-      return {
-        success: false,
-        error: "Booking not found",
-      };
-    }
+//     revalidatePath("/reservations");
+//     revalidatePath("/admin/test-drives");
 
-    // Check if user owns this booking
-    if (booking.userId !== user.id || user.role !== "ADMIN") {
-      return {
-        success: false,
-        error: "Unauthorized to cancel this booking",
-      };
-    }
-
-    // Check if booking can be cancelled
-    if (booking.status === "CANCELLED") {
-      return {
-        success: false,
-        error: "Booking is already cancelled",
-      };
-    }
-
-    if (booking.status === "COMPLETED") {
-      return {
-        success: false,
-        error: "Cannot cancel a completed booking",
-      };
-    }
-
-    // Update the booking status
-    await db.testDriveBooking.update({
-      where: { id: bookingId },
-      data: { status: "CANCELLED" },
-    });
-
-    // Revalidate paths
-    revalidatePath("/reservations");
-    revalidatePath("/admin/test-drives");
-
-    return {
-      success: true,
-      message: "Test drive cancelled successfully",
-    };
-  } catch (error: unknown) {
-    console.error("Error cancelling test drive:", error);
-    return {
-      success: false,
-      error: (error as Error).message,
-    };
-  }
-}
+//     return { success: true, message: "Test drive cancelled successfully" };
+//   } catch (err: unknown) {
+//     console.error("cancelTestDrive error:", err);
+//     return { success: false, error: (err as Error).message };
+//   }
+// }
