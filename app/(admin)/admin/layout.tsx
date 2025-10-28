@@ -3,12 +3,10 @@ import Header from '@/components/header'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import { Sidebar } from './_components/sidebar'
-import { usePrefetch } from '@/app/hooks/use-prefetch'
 export const dynamic = 'force-dynamic'
 
 const AdminLayout = async ({ children }: { children: React.ReactNode }) => {
   const admin = await getAdmin()
-  usePrefetch(["/admin/cars", "/admin/bookings", "/admin/dealers","/admin/purchases"]);
   
   if (!admin || !admin.authorized) {
     return notFound()

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users, PyramidIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
+import { usePrefetch } from "@/app/hooks/use-prefetch";
 
 // Navigation items
 const routes = [
@@ -18,6 +19,8 @@ const routes = [
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  usePrefetch(["/admin/cars", "/admin/bookings", "/admin/dealers","/admin/purchases"]);
+
 
   return (
     <>
