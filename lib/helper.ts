@@ -3,11 +3,14 @@ import {
   Car,
   DayOfWeek,
   Dealer,
+  MessageType,
   Prisma,
   User,
   WorkingHour,
 } from "@prisma/client";
 import { differenceInDays, differenceInHours } from "date-fns";
+import { id } from "date-fns/locale";
+import { read } from "fs";
 
 export const serializeUserData = (user: any) => {
   if (!user) return null;
@@ -197,7 +200,9 @@ export function serializeBooking(booking: any) {
     bookingDate: booking.bookingDate ? booking.bookingDate.toISOString() : null,
     startTime: booking.startTime.toISOString(),
     endTime: booking.endTime.toISOString(),
-    totalPrice: booking.totalPrice? parseFloat(booking.totalPrice.toString()) : null,
+    totalPrice: booking.totalPrice
+      ? parseFloat(booking.totalPrice.toString())
+      : null,
     status: booking.status,
     notes: booking.notes,
     statusChangedAt: booking.statusChangedAt
@@ -214,48 +219,67 @@ export function serializeBooking(booking: any) {
 }
 
 export function serializePurchase(purchase: any) {
-  if (!purchase) return null
+  if (!purchase) return null;
 
   return {
     ...purchase,
     id: purchase.id,
     status: purchase.status,
-    price: purchase.price instanceof Prisma.Decimal 
-      ? Number(purchase.price) 
-      : purchase.price,
-    
+    price:
+      purchase.price instanceof Prisma.Decimal
+        ? Number(purchase.price)
+        : purchase.price,
+
     dealerId: purchase.dealerId,
     carId: purchase.carId,
     userId: purchase.userId,
 
-    createdAt: purchase.createdAt instanceof Date 
-      ? purchase.createdAt.toISOString() 
-      : purchase.createdAt,
+    createdAt:
+      purchase.createdAt instanceof Date
+        ? purchase.createdAt.toISOString()
+        : purchase.createdAt,
 
-    updatedAt: purchase.updatedAt instanceof Date 
-      ? purchase.updatedAt.toISOString() 
-      : purchase.updatedAt,
+    updatedAt:
+      purchase.updatedAt instanceof Date
+        ? purchase.updatedAt.toISOString()
+        : purchase.updatedAt,
 
-    statusChangedAt: purchase.statusChangedAt 
-      ? new Date(purchase.statusChangedAt).toISOString() 
+    statusChangedAt: purchase.statusChangedAt
+      ? new Date(purchase.statusChangedAt).toISOString()
       : null,
 
-    car: purchase.car
-      ? serializeCarData(purchase.car)
-      : null,
+    car: purchase.car ? serializeCarData(purchase.car) : null,
 
-    dealer: purchase.dealer
-      ? serializeDealerData(purchase.dealer)
-      : null,
+    dealer: purchase.dealer ? serializeDealerData(purchase.dealer) : null,
 
-    user: purchase.user
-      ? serializeUserData(purchase.user)
-      : null,
-  }
-};
-// export const formatCurrency = (price: string): string => {
-//     return price.replace(/\$/g, "").trim();
-//   };
+    user: purchase.user ? serializeUserData(purchase.user) : null,
+  };
+}
+
+export function serializeMessage(message: any) {
+  if (!message) return null;
+  return {
+    ...message,
+    id: message.id,
+    type: message.type as MessageType,
+    createdAt: message.createdAt ? message.createdAt.toISOString() : null,
+    readAt: message.readAt ? message.readAt.toISOString() : null,
+    isUser: message.sender.role === "USER",
+    sender: {
+      id: message.sender.id,
+      name: message.sender.name,
+      email: message.sender.email,
+      role: message.sender.role,
+    },
+    receiver: {
+      id: message.receiver.id,
+      name: message.receiver.name,
+      email: message.receiver.email,
+      role: message.receiver.role,
+    },
+  };
+}
+
 export const formatCurrency = (amount: string | number): string => {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -314,6 +338,10 @@ export function combineDateAndTime(dateStr: string, timeStr: string): Date {
   return new Date(Date.UTC(year, month - 1, day, hour, minute));
 }
 
+function utcToLocalMinutes(date: Date, offsetHours = 7) {
+  return (date.getUTCHours() + offsetHours) * 60 + date.getUTCMinutes();
+}
+
 //  handle time validation for rental pickup and return
 export async function validateWorkingHours(
   workingHours: any[],
@@ -329,14 +357,29 @@ export async function validateWorkingHours(
   );
   if (!schedule) throw new Error(`Dealer closed on ${dayName}`);
 
-  const openHour = Math.floor(schedule.openTime / 100);
-  const closeHour = Math.floor(schedule.closeTime / 100);
+  // const openHour = Math.floor(schedule.openTime / 100);
+  // const closeHour = Math.floor(schedule.closeTime / 100);
 
-  const startH = start.getUTCHours();
-  const endH = end.getUTCHours();
+  // const startH = start.getUTCHours();
+  // const endH = end.getUTCHours();
 
-  if (startH < openHour || endH > closeHour) {
-    throw new Error(`Must be within ${openHour}:00-${closeHour}:00`);
+  // if (startH < openHour || endH > closeHour) {
+  //   throw new Error(`Must be within ${openHour}:00-${closeHour}:00`);
+  // }
+
+  const openMinutes =
+    Math.floor(schedule.openTime / 100) * 60 + (schedule.openTime % 100);
+
+  const closeMinutes =
+    Math.floor(schedule.closeTime / 100) * 60 + (schedule.closeTime % 100);
+
+  const startMinutes = utcToLocalMinutes(start);
+  const endMinutes = utcToLocalMinutes(end);
+
+  if (startMinutes < openMinutes || endMinutes > closeMinutes) {
+    throw new Error(
+      `Must be within ${schedule.openTime}-${schedule.closeTime}`
+    );
   }
 }
 
@@ -345,7 +388,6 @@ const PREPARATION_HOURS = {
   hourly: 0.5, // 30p
   daily: 1.0, // 1h
 };
-
 
 export async function validateRentalStartTime(
   workingHours: any[],

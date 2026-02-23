@@ -62,6 +62,8 @@ import { toast } from 'sonner'
 import { Dealer } from '@/types/dealer'
 import { useRouter } from 'next/navigation'
 import { useSmoothRouter } from '@/app/hooks/use-smooth-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { useServerQuery } from '@/app/hooks/use-server-query'
 
 
 
@@ -71,24 +73,28 @@ export default function DealerList() {
     const [sortBy, setSortBy] = useState<'name' | 'createdAt' | 'avgRating'>('createdAt')
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
     const [showArchived, setShowArchived] = useState(false)
-    const [refetchFlag, setRefetchFlag] = useState(false)
     const [isOpenAlert, setIsOpenAlert] = useState(false)
-    const [isOpenEdit, setIsOpenEdit] = useState(false)
     const [actionType, setActionType] = useState<'toggle' | 'delete' | null>(null)
     const [selectedDealer, setSelectedDealer] = useState<Dealer | null>(null)
     const router = useRouter()
 
+
+    const queryClient = useQueryClient();
+    const {
+        isLoading: loadingDealers,
+        data: resultDealers,
+        error: errorDealers
+    } = useServerQuery<any>({
+        queryKey: ['admin-dealers'],
+        queryFn: () => getDealers(),
+    });
+
     //   const debouncedSearch = searchDebounce(search, 300)
-    const { loading: loadingDealers, fetchData: fnGetDealers, data: resultDealers, error: errorDealers } = useFetch<ApiResponse<any[]>>(getDealers)
-    const archivedDealers = resultDealers?.data?.filter(dealer => dealer.archived) || []
+    // const { loading: loadingDealers, fetchData: fnGetDealers, data: resultDealers, error: errorDealers } = useFetch<ApiResponse<any[]>>(getDealers)
+    const archivedDealers = resultDealers?.data?.filter((dealer:any) => dealer.archived) || []
     const { loading: loadingToggle, fetchData: fnToggleDealerArchive, data: resultToggle, error: errorToggle } = useFetch(toggleDealerArchive)
     const { loading: loadingDelete, fetchData: fnDeleteDealer, data: resultDelete, error: errorDelete } = useFetch(deleteDealer)
 
-    // Fetch dealers on mount and search changes
-    useEffect(() => {
-
-        fnGetDealers()
-    }, [refetchFlag])
 
 
 
@@ -143,7 +149,7 @@ export default function DealerList() {
                             )}
                             {showArchived ? 'Hide' : 'Show'} Archived
                         </Button>
-                        <AddDealerDialog onSuccess={() => { setRefetchFlag(prev => !prev) }} />
+                        <AddDealerDialog onSuccess={() => { queryClient.invalidateQueries({ queryKey: ["admin-dealers"] }); }} />
                     </div>
 
 
@@ -221,7 +227,7 @@ export default function DealerList() {
                         </TableHeader>
                         <TableBody className='min-h-[800px]'>
                             <AnimatePresence mode="wait">
-                                {((showArchived && archivedDealers) || resultDealers?.data)?.map((dealer, index) => (
+                                {((showArchived && archivedDealers) || resultDealers?.data)?.map((dealer:any, index:number) => (
                                     <motion.tr
                                         key={dealer.id}
                                         initial={{ opacity: 0, x: -20 }}
@@ -269,7 +275,7 @@ export default function DealerList() {
                                                             dealerId={dealer.id}
                                                             // isOpen={isOpenEdit}
                                                             onSuccess={() => {
-                                                                setRefetchFlag(prev => !prev);
+                                                                queryClient.invalidateQueries({ queryKey: ["admin-dealers"] });
                                                             }}
                                                         >
                                                                                                                     <span className="hover:underline cursor-pointer">{dealer.name}</span>
@@ -419,7 +425,7 @@ export default function DealerList() {
                                                     isOpen={isOpenAlert}
                                                     onClose={() => setIsOpenAlert(false)}
                                                     actionType={actionType}
-                                                    onSuccess={() => setRefetchFlag(prev => !prev)}
+                                                    onSuccess={() => queryClient.invalidateQueries({ queryKey: ["admin-dealers"] })}
                                                 />
                                             </DropdownMenu>
                                         </TableCell>
@@ -492,7 +498,7 @@ export default function DealerList() {
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Active</p>
                                 <p className="text-2xl font-bold">
-                                    {resultDealers?.data && resultDealers?.data.filter(d => !d.archived).length}
+                                    {resultDealers?.data && resultDealers?.data.filter((d:any) => !d.archived).length}
                                 </p>
                             </div>
                             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -505,7 +511,7 @@ export default function DealerList() {
                             <div>
                                 <p className="text-sm font-medium text-muted-foreground">Archived</p>
                                 <p className="text-2xl font-bold">
-                                    {resultDealers?.data && resultDealers?.data.filter(d => d.archived).length}
+                                    {resultDealers?.data && resultDealers?.data.filter((d:any) => d.archived).length}
                                 </p>
                             </div>
                             <Archive className="w-8 h-8 text-muted-foreground" />
@@ -517,7 +523,7 @@ export default function DealerList() {
                                 <p className="text-sm font-medium text-muted-foreground">Avg Rating</p>
                                 <p className="text-2xl font-bold">
                                     {resultDealers?.data && resultDealers?.data.length > 0
-                                        ? (resultDealers.data.reduce((sum, d) => sum + d.avgRating, 0) / resultDealers.data.length).toFixed(1)
+                                        ? (resultDealers.data.reduce((sum:any, d:any) => sum + d.avgRating, 0) / resultDealers.data.length).toFixed(1)
                                         : '0.0'}
                                 </p>
                             </div>

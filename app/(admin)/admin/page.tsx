@@ -16,7 +16,6 @@ const AdminPage = async () => {
     return <div className='p-6'>Failed to load dashboard data.</div>;
   }
   const stats = dashboardData.data;
-  console.log(stats,'stats')
   return (
     <div className='p-6'>
       <Dashboard initialData={stats} />

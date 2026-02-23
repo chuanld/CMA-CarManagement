@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { ThemeProvider } from 'next-themes';
 import ProgressBar from '@/components/progress-bar';
+import Providers from './provider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
         <ClerkProvider>
+          <Providers>
           <ThemeProvider attribute="class" defaultTheme="system"
             enableSystem
             disableTransitionOnChange>
@@ -38,6 +40,7 @@ export default function RootLayout({
             {/* </ClientContent> */}
 
           </ThemeProvider>
+          </Providers>
         </ClerkProvider>
       </body>
     </html>

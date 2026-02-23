@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrencyVND } from "@/lib/helper";
 import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
     filters: FilterOptions | any;
@@ -38,7 +39,7 @@ const CarFilters = ({ filters }: Props) => {
     const { smoothPush, isPending } = useSmoothRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    
+  
     // Filter features
     const currentMake = searchParams.get("make") || "";
     const currentBodyType = searchParams.get("bodyType") || "";

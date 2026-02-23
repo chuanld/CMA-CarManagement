@@ -33,6 +33,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useSmoothRouter } from "@/app/hooks/use-smooth-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerQuery } from "@/app/hooks/use-server-query";
 
 const CarListing = () => {
   const searchParams = useSearchParams();
@@ -52,27 +54,39 @@ const CarListing = () => {
   const page = parseInt(searchParams.get("page") || "1");
   const { smoothPush,isPending } = useSmoothRouter();
 
+
+  const queryClient = useQueryClient();
+
   const {
-    loading: isFetchCar,
-    fetchData: fnGetCars,
+    isLoading: isFetchCar,
     data: resultCars,
     error: errorData,
-  } = useFetch<CarListApiResponse>(getCars);
+  } = useServerQuery<any>({
+    queryKey: ["car-listing", { search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page, limit }],
+    queryFn: () => getCars({ search, make, bodyType, fuelType, transmission, sortBy, page, limit }),
+  });
 
-  useEffect(() => {
-    fnGetCars({
-      search,
-      make,
-      bodyType,
-      fuelType,
-      transmission,
-      minPrice,
-      maxPrice,
-      sortBy,
-      page,
-      limit,
-    });
-  }, [search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page]);
+  // const {
+  //   loading: isFetchCar,
+  //   fetchData: fnGetCars,
+  //   data: resultCars,
+  //   error: errorData,
+  // } = useFetch<CarListApiResponse>(getCars);
+
+  // useEffect(() => {
+  //   fnGetCars({
+  //     search,
+  //     make,
+  //     bodyType,
+  //     fuelType,
+  //     transmission,
+  //     minPrice,
+  //     maxPrice,
+  //     sortBy,
+  //     page,
+  //     limit,
+  //   });
+  // }, [search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page]);
 
   if (isFetchCar || !resultCars) {
     return <CarListSkeleton />;
@@ -90,7 +104,7 @@ const CarListing = () => {
               <Button
                 variant="link"
                 className="p-0 h-auto text-primary hover:text-primary/80"
-                onClick={() => fnGetCars({ search, make, bodyType, fuelType, transmission, minPrice, maxPrice, sortBy, page: 1, limit })}
+                onClick={() => queryClient.refetchQueries({ queryKey: ["car-listing"] })}
               >
                 refresh
               </Button>

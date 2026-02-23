@@ -25,6 +25,10 @@ model User {
   bookings    Booking[]          @relation("UserBookings")
   savedCars   UserSavedCar[]
   purchases   Purchase[]         @relation("UserPurchases")
+  sentMessages     Message[]     @relation("SentMessages")
+  receivedMessages Message[]     @relation("ReceivedMessages")
+  notifications Notification[]
+  conversations     Conversation[]     
 }
 
 model Dealer {
@@ -48,6 +52,7 @@ model Dealer {
   workingHours WorkingHour[]
   bookings     Booking[]     @relation("DealerBookings")
   purchases    Purchase[]    @relation("DealerPurchases")
+  conversations Conversation[] 
 
   @@index([name])
 }
@@ -84,6 +89,8 @@ model Car {
   savedBy           UserSavedCar[]
   reviews           Review[]           @relation("CarReviews")
   purchases         Purchase[]         @relation("CarPurchases")
+  messages          Message[]
+  conversations     Conversation[]     
 
   @@index([make, model])
   @@index([bodyType])
@@ -233,6 +240,77 @@ model Review {
   @@index([dealerId])
   @@index([rating])
 }
+
+
+model Message {
+  id        String   @id @default(uuid())
+  senderId  String
+  receiverId String
+  carId     String?
+  conversationId String
+  content   String
+  type      MessageType @default(TEXT)
+  readAt   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  car       Car?     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId])
+}
+
+
+model Conversation {
+  id        String    @id @default(uuid())
+  carId     String
+  userId    String
+  dealerId  String
+  lastMessageAt DateTime? @default(now())
+  createdAt DateTime  @default(now())
+
+  car       Car       @relation(fields: [carId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealer    Dealer    @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@unique([carId, userId, dealerId])
+  @@index([userId, lastMessageAt(sort: Desc)])//get conversations newest first
+  @@index([dealerId, lastMessageAt(sort: Desc)])//dealer dashboard
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(GENERAL)  
+  read      Boolean  @default(false)
+  data      Json?    @db.Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+}
+
+enum MessageType {
+   TEXT
+   IMAGE
+   FILE
+}
+enum NotificationType { 
+  CHAT 
+  BOOKING 
+  PURCHASE 
+  GENERAL 
+}
+
 
 enum UserRole {
   USER

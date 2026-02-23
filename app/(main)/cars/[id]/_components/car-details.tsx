@@ -14,6 +14,8 @@ import {
   CarIcon,
   CheckCircle,
   CheckCircleIcon,
+  ChevronDown,
+  ChevronUp,
   ClockIcon,
   CurrencyIcon,
   FolderHeart,
@@ -22,6 +24,7 @@ import {
   Heart,
   Loader2,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Navigation,
   Share2,
@@ -36,7 +39,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Progress } from '@/components/ui/progress'
-import { useRouter } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import useFetch from '@/app/hooks/use-fetch'
 import { ApiResponse } from '@/types/api'
@@ -58,6 +61,8 @@ import { displayDateTime } from '@/app/(main)/bookings/helper/handle-bookings'
 import { useSmoothRouter } from '@/app/hooks/use-smooth-router'
 import { Booking } from '@/types/booking'
 import { currentUser } from '@/actions/user'
+import { getOrCreateConversation } from '@/actions/chat'
+import ChatDrawer from './chat/chat-drawer'
 
 interface CarDetailsProps {
   car: Car | any
@@ -66,11 +71,12 @@ interface CarDetailsProps {
 }
 
 const CarDetails = () => {
-  const { car, testDriveInfo, upcomingBookings,user } = useCar();
+  const { car, testDriveInfo, upcomingBookings, user } = useCar();
   const { smoothPush, isPending } = useSmoothRouter()
   const { isSignedIn } = useAuth()
   const [isWishlisted, setIsWishlisted] = useState<boolean>(car.whishlisted || false)
   const [activeTab, setActiveTab] = useState(car.carType === 'RENT' ? 'rent' : 'sale');
+  const [isOpenChat, setIsOpenChat] = useState(false);
 
 
   const businessType = car.carType || 'BOTH'
@@ -78,14 +84,13 @@ const CarDetails = () => {
   const isRent = businessType === 'RENT' || businessType === 'BOTH'
 
   const userTestDrive = testDriveInfo || {}
-  
+
 
 
   const existUserBookings: TestDriveBooking[] = car?.testDriveBookings || []
 
   const upcomingRentalBookings: TestDriveBooking[] = upcomingBookings?.rentals || []
-  console.log(upcomingRentalBookings,'up')
-  console.log(user,'user')
+
   const userRentalBookings: TestDriveBooking[] = upcomingRentalBookings.filter((b => b.user?.id === user?.id)) || []
   const nextBooking: TestDriveBooking | null =
     existUserBookings.length > 0
@@ -144,13 +149,22 @@ const CarDetails = () => {
       })
   }
 
-  const handleBookTestDrive = () => {
-    if (!isSignedIn) {
-      toast.error('You must be signed in to book a test drive.')
-      return
-    }
-    smoothPush(`/test-drive/${car.id}`)
-  }
+  // const handleChatDealer = async () => {
+  //   try {
+  //     const conversation = await getOrCreateConversation(car.dealer.id, car.id);
+  //     if (!conversation.success) {
+  //       throw new Error('Failed to create or get conversation');
+  //     }
+  //     if (!conversation.data) {
+  //       throw new Error('No conversation data returned');
+  //     }
+  //     smoothPush(`/chat/${car.dealer.id}?carId=${car.id}`);
+  //   } catch (err: unknown) {
+  //     console.error('Error starting chat:', err);
+  //     toast.error('Failed to start chat with dealer.');
+  //     smoothPush(`/cars/${car.id}`); // Redirect back to car details on error
+  //   }
+  // }
 
   const getMileageProgress = () => {
     const maxMileage = 5000 // Assume max mileage for progress
@@ -196,20 +210,7 @@ const CarDetails = () => {
       </div>
     )
   }
-  // if (!testDriveInfo) {
-  //   return (
-  //     <div className="container mx-auto px-6 py-10">
-  //       <Card className="shadow-xl border border-gray-100 rounded-2xl overflow-hidden">
-  //         <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-100 p-6 border-b">
-  //           <CardTitle className="text-3xl font-bold flex items-center gap-3 text-gray-800">
-  //             <CarIcon className="w-7 h-7 text-indigo-600" />
-  //             Test Drive Info Not Found
-  //           </CardTitle>
-  //         </CardHeader>
-  //       </Card>
-  //     </div>
-  //   )
-  // }
+
 
 
   return (
@@ -392,11 +393,11 @@ const CarDetails = () => {
                           <DialogTitle>Book Rental</DialogTitle>
                         </DialogHeader>
                         <p className="text-sm text-gray-600">Choose rental duration (hourly or daily).</p>
-                        <Button 
-                          onClick={() => handleBooking('rental')} 
+                        <Button
+                          onClick={() => handleBooking('rental')}
                           className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           disabled={isPending}
-                          >
+                        >
                           Confirm Rental {isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                         </Button>
                       </DialogContent>
@@ -511,6 +512,25 @@ const CarDetails = () => {
                     </div>
                   </div>
                   <Button variant="outline" className="w-full">Get Directions</Button>
+                  <div className="mt-2 ">
+                    <ChatDrawer dealerId={car.dealer.id} carId={car.id}>
+
+                      <Button
+
+                        variant="outline"
+                        className="w-full justify-center text-sm font-semibold bg-none border-none"
+                      >
+                        <span className="flex items-center gap-2 justify-center hover:border-b-1">
+                          <MessageCircle className="h-5 w-5" />
+                          Chat Dealer
+                        </span>
+
+                      </Button>
+                    </ChatDrawer>
+
+
+
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -577,7 +597,7 @@ const CarDetails = () => {
                         animate={{ opacity: 1 }}
                         className="  flex flex-col gap-4"
                       >
-                         { userTestDrive.bookings.map((book: any, i: number) => (
+                        {userTestDrive.bookings.map((book: any, i: number) => (
                           <p key={i} className="text-md text-black-600">
                             <CalendarIcon className="w-4 h-4 inline mr-1" />
                             Test drive on: {format(new Date(book.bookingDate), 'EEEE, MMMM d, yyyy')}
@@ -629,7 +649,7 @@ const CarDetails = () => {
                     <CardTitle className="text-xl font-bold text-gray-800">Schedule a Test Drive</CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
-                    { userRentalBookings.length > 0 ? (
+                    {userRentalBookings.length > 0 ? (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}

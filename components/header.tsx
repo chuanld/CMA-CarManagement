@@ -10,6 +10,8 @@ import { checkUser } from '@/lib/checkUser'
 import { getOrCreateUser } from '@/lib/getOrderUser'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
+import { NotificationBell } from './notification-bell'
+import { useMessageNotification } from '@/app/hooks/use-notification'
 
 interface HeaderProps {
   isAdminPage?: boolean
@@ -19,7 +21,13 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
+  const isAdmin = user?.role === 'ADMIN'
+  const { unread, resetUnread, notifications } =
+    useMessageNotification(
+      isAdmin
+        ? `pm-dealer-${user?.id}`
+        : `pm-user-${user?.id}`
+    );
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await getOrCreateUser();
@@ -28,7 +36,6 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
     fetchUser();
   }, [])
 
-  const isAdmin = user?.role === 'ADMIN'
 
   const { smoothPush, isPending } = useSmoothRouter();
 
@@ -75,7 +82,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
           <Image
             src={`${isAdmin ? '/chuan_DP.png' : '/chuan_CMAS.png'}`}
             alt="Car Marketplace AI System"
-            width={250}
+            width={200}
             height={50}
             className=" relative z-10"
             quality={90}
@@ -111,12 +118,12 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
 
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-3">
+        <div className="hidden md:flex items-center space-x-3 ml-3">
           <SignedIn>
             {isAdmin && (
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
+                className="group relative flex items-center gap-2 px-2.5 py-2 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
                 onClick={() => smoothPush('/admin')}
               >
                 <ShieldBan size={18} className="group-hover:rotate-12 transition-transform" />
@@ -131,7 +138,7 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
             )}
             <motion.button
               whileHover={{ scale: 1.02 }}
-              className="group relative flex items-center gap-2 px-5 py-2.5 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
+              className="group relative flex items-center gap-2 px-2.5 py-2 border-2 border-accent/70 text-foreground font-medium rounded-full transition-all duration-300 hover:bg-accent/10 hover:border-accent hover:text-accent-foreground shadow-glow"
               onClick={() => smoothPush('/reservations')}
             >
               <CarFront size={18} className="group-hover:rotate-12 transition-transform" />
@@ -147,15 +154,17 @@ const Header = ({ isAdminPage = false }: HeaderProps) => {
             {/* Saved Cars */}
             <motion.button
               whileHover={{ scale: 1.05 }}
-              className="group relative flex items-center gap-2 px-6 py-2.5 bg-accent/70 text-accent-foreground font-semibold rounded-full shadow-glow transition-all duration-300 hover:bg-accent/95 hover:shadow-glow"
+              className="group relative flex items-center gap-2 px-2.5 py-2 bg-accent/70 text-accent-foreground font-semibold rounded-full shadow-glow transition-all duration-300 hover:bg-accent/95 hover:shadow-glow"
               onClick={() => smoothPush('/saved-cars')}
             >
               <Heart size={18} className="group-hover:scale-110 transition-transform fill-current" />
               <span className="text-foreground whitespace-nowrap text-sm">Saved Cars</span>
             </motion.button>
-            <Bell size={20} className="relative">
+            {/* <Bell size={20} className="relative">
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
-            </Bell>
+            </Bell> */}
+
+            <NotificationBell unread={unread} notifications={notifications} onOpen={()=>  resetUnread()} />
 
             {/* UserButton */}
             <motion.div whileHover={{ scale: 1.10 }} className="ml-4">

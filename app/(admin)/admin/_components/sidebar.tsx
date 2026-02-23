@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users, PyramidIcon } from "lucide-react";
+import { LayoutDashboard, Car, Calendar, Cog, LogOut, Users, PyramidIcon, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/nextjs";
 import { usePrefetch } from "@/app/hooks/use-prefetch";
@@ -14,12 +14,13 @@ const routes = [
   { label: "Dealers", icon: Users, href: "/admin/dealers" },
   { label: "Bookings", icon: Calendar, href: "/admin/bookings" },
   { label: "Purchases", icon: PyramidIcon, href: "/admin/purchases" },
+  { label: "Chats", icon: MessageCircle, href: "/admin/chats" },
   // { label: "Settings", icon: Cog, href: "/admin/settings" },
 ];
 
 export const Sidebar = () => {
   const pathname = usePathname();
-  usePrefetch(["/admin/cars", "/admin/bookings", "/admin/dealers","/admin/purchases"]);
+  usePrefetch(["/admin/cars", "/admin/bookings", "/admin/dealers","/admin/purchases","/admin/chats"]);
 
 
   return (
