@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/chuan/Desktop/Car/car_marketplace/apps/web/app/%28admin%29/admin/cars/layout.tsx"],"sourcesContent":["import React from 'react'\r\n\r\nconst CarsLayout = ({ children }: { children: React.ReactNode }) => {\r\n  return (\r\n    <div>{children}</div>\r\n  )\r\n}\r\n\r\nexport default CarsLayout"],"names":[],"mappings":";;;;;;AAEA,MAAM,aAAa,CAAC,EAAE,QAAQ,EAAiC;IAC7D,qBACE,6WAAC;kBAAK;;;;;;AAEV;uCAEe","debugId":null}}]
+}

@@ -1,0 +1,41 @@
+{
+  "pages": {
+    "/(admin)/admin/dealers/page": [
+      "static/chunks/f7813_next_dist_ca7a46cf._.js",
+      "static/chunks/apps_web_app_favicon_ico_mjs_ffd38c62._.js",
+      "static/chunks/[root-of-the-server]__5d5f5bed._.css",
+      "static/chunks/7e67f_@clerk_nextjs_dist_esm_app-router_0a7848d9._.js",
+      "static/chunks/apps_web_62427683._.js",
+      "static/chunks/f7813_next_9e893f61._.js",
+      "static/chunks/3684f_motion-dom_dist_es_c9a966d8._.js",
+      "static/chunks/5d90b_framer-motion_dist_es_c208a313._.js",
+      "static/chunks/ec092_@clerk_shared_dist_runtime_0398206b._.js",
+      "static/chunks/ffbcc_swr_dist_08c0791a._.js",
+      "static/chunks/0b550_@clerk_clerk-react_dist_c22157ba._.js",
+      "static/chunks/7e67f_@clerk_nextjs_dist_esm_3e31f8ef._.js",
+      "static/chunks/b81e1_tailwind-merge_dist_bundle-mjs_mjs_0e32d81d._.js",
+      "static/chunks/2b313_pusher-js_dist_web_pusher_f8773257.js",
+      "static/chunks/9bbe3_@tanstack_query-core_build_modern_bcc3b230._.js",
+      "static/chunks/node_modules__pnpm_e24c0b54._.js",
+      "static/chunks/apps_web_app_layout_tsx_3c6291f6._.js",
+      "static/chunks/f7813_next_dist_client_components_builtin_global-error_1f42d444.js",
+      "static/chunks/_40982cdc._.js",
+      "static/chunks/apps_web_app_(admin)_admin_layout_tsx_1f42d444._.js",
+      "static/chunks/apps_web_e059a258._.js",
+      "static/chunks/b299f_@radix-ui_react-select_dist_index_mjs_0535f7c8._.js",
+      "static/chunks/9f8f1_zod_v4_630878f8._.js",
+      "static/chunks/50921_react-hook-form_dist_index_esm_mjs_c819f281._.js",
+      "static/chunks/node_modules__pnpm_a9937144._.js",
+      "static/chunks/apps_web_app_(admin)_admin_dealers_page_tsx_6884be36._.js",
+      "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_be2445a1._.js",
+      "static/chunks/f7813_next_dist_compiled_react-dom_8262c337._.js",
+      "static/chunks/f7813_next_dist_compiled_next-devtools_index_a13d571c.js",
+      "static/chunks/f7813_next_dist_compiled_2235c785._.js",
+      "static/chunks/f7813_next_dist_client_7d63aa88._.js",
+      "static/chunks/f7813_next_dist_55b9482d._.js",
+      "static/chunks/69652_@swc_helpers_cjs_77b72907._.js",
+      "static/chunks/apps_web_a0ff3932._.js",
+      "static/chunks/turbopack-apps_web_2e1838c7._.js"
+    ]
+  }
+}

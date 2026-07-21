@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/chuan/Desktop/Car/car_marketplace/apps/web/app/%28auth%29/layout.tsx"],"sourcesContent":["import React from 'react'\r\n\r\nconst AuthLayout = ({children}: React.PropsWithChildren<{}>) => {\r\n  return (\r\n    <div className='flex justify-center pt-40'>{children}</div>\r\n  )\r\n}\r\n\r\nexport default AuthLayout"],"names":[],"mappings":";;;;;;AAEA,MAAM,aAAa,CAAC,EAAC,QAAQ,EAA8B;IACzD,qBACE,6WAAC;QAAI,WAAU;kBAA6B;;;;;;AAEhD;uCAEe","debugId":null}}]
+}

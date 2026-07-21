@@ -1,0 +1,5 @@
+{
+  "/(admin)/admin/cars/create/page": "app/(admin)/admin/cars/create/page.js",
+  "/(admin)/admin/cars/page": "app/(admin)/admin/cars/page.js",
+  "/(admin)/admin/dealers/page": "app/(admin)/admin/dealers/page.js"
+}

@@ -1,0 +1,5 @@
+$ tsc --noEmit
+.next/types/validator.ts(186,39): error TS2306: File 'C:/Users/chuan/Desktop/Car/car_marketplace/apps/web/app/(main)/chat/page.tsx' is not a module.
+app/(main)/cars/[id]/_components/chat/chat-drawer.tsx(76,7): error TS2353: Object literal may only specify known properties, and 'carId' does not exist in type '{ conversationId: string; content: string; }'.
+app/(main)/chat/[id]/_components/chat-layout.tsx(88,9): error TS2353: Object literal may only specify known properties, and 'carId' does not exist in type '{ conversationId: string; content: string; }'.
+[ELIFECYCLE] Command failed with exit code 2.
